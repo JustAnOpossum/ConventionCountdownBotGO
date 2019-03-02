@@ -4,6 +4,8 @@ import (
 	tgAPI "gopkg.in/tucnak/telebot.v2"
 )
 
-func createMainMenu(msg tgAPI.Message) {
-	bot.Send(msg.Sender, "Hello World")
+func handleStart(msg *tgAPI.Message) {
+	// bot.Send(msg.Sender, "Testing", &tgAPI.ReplyMarkup{
+	// 	InlineKeyboard: createMainMenu(),
+	// })
 }
