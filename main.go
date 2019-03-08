@@ -13,8 +13,6 @@ func main() {
 
 	bot.Handle("/start", handleStart)
 
-	createMainMenu()
-
 	fmt.Println("Telegram Bot is Started")
 	bot.Start()
 }

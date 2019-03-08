@@ -5,7 +5,7 @@ import (
 )
 
 func handleStart(msg *tgAPI.Message) {
-	// bot.Send(msg.Sender, "Testing", &tgAPI.ReplyMarkup{
-	// 	InlineKeyboard: createMainMenu(),
-	// })
+	bot.Send(msg.Sender, "Testing", &tgAPI.ReplyMarkup{
+		InlineKeyboard: createMainMenu(false),
+	})
 }
