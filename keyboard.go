@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"os"
 
 	tgAPI "gopkg.in/tucnak/telebot.v2"
 )
@@ -9,10 +9,29 @@ import (
 func createMainMenu(isSubscribed bool) [][]tgAPI.InlineButton {
 	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
 	if isSubscribed == true {
-		finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("unsub", "Unsubscribe To Countdown", handleUnsub)})
+		finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("unsub", "Unsubscribe From Countdown", handleUnsub)})
 	} else {
 		finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("sub", "Subscribe To Countdown", handleSub)})
 	}
+	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("cmd", "Commands", handleCommand)})
+	return finalKeyboard
+}
+
+func createCmdKeybaord() [][]tgAPI.InlineButton {
+	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
+
+	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("sub", "Subscribe To Countdown", handleSub)})
+	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("unsub", "Unsubscribe From Countdown", handleUnsub)})
+	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("info", "Bot Information", handleInfo)})
+	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("days", "Days Until "+os.Getenv("CON"), handleDays)})
+	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("home", "Back To Main Menu", handleHome)})
+
+	return finalKeyboard
+}
+
+func createBackKeyboard() [][]tgAPI.InlineButton {
+	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
+	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("home", "Back To Main Menu", handleHome)})
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("cmd", "Commands", handleCommand)})
 	return finalKeyboard
 }
@@ -26,16 +45,9 @@ func createBtn(uniqueName, text string, callback func(*tgAPI.Callback)) tgAPI.In
 	return btn
 }
 
-func handleUnsub(c *tgAPI.Callback) {
-}
-
-func handleSub(c *tgAPI.Callback) {
-	fmt.Println(c.MessageID)
-	bot.Edit(c.Message, c.Message.Text, "Testing2")
-	bot.Edit(c.Message, tgAPI.ReplyMarkup{}, createMainMenu(true))
+func handleBtnClick(msgTxt string, msgKeyboard [][]tgAPI.InlineButton, c *tgAPI.Callback) {
+	bot.Edit(c.Message, msgTxt, &tgAPI.ReplyMarkup{
+		InlineKeyboard: msgKeyboard,
+	})
 	bot.Respond(c, &tgAPI.CallbackResponse{})
-}
-
-func handleCommand(c *tgAPI.Callback) {
-
 }
