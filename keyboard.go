@@ -1,39 +1,42 @@
 package main
 
 import (
-	"os"
-
 	tgAPI "gopkg.in/tucnak/telebot.v2"
 )
 
-func createMainMenu(isSubscribed bool) [][]tgAPI.InlineButton {
+var keyboards = make(map[string][][]tgAPI.InlineButton)
+
+func createMainMenu(isSubscribed bool) {
 	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
+	var nameToAppend string
 	if isSubscribed == true {
 		finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("unsub", "Unsubscribe From Countdown", handleUnsub)})
+		nameToAppend = "Unsub"
 	} else {
 		finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("sub", "Subscribe To Countdown", handleSub)})
+		nameToAppend = "Sub"
 	}
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("cmd", "Commands", handleCommand)})
-	return finalKeyboard
+	keyboards["main"+nameToAppend] = finalKeyboard
 }
 
-func createCmdKeybaord() [][]tgAPI.InlineButton {
+func createCmdKeybaord() {
 	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
 
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("sub", "Subscribe To Countdown", handleSub)})
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("unsub", "Unsubscribe From Countdown", handleUnsub)})
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("info", "Bot Information", handleInfo)})
-	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("days", "Days Until "+os.Getenv("CON"), handleDays)})
+	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("days", "Days Until "+config.Con, handleDays)})
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("home", "Back To Main Menu", handleHome)})
 
-	return finalKeyboard
+	keyboards["cmd"] = finalKeyboard
 }
 
-func createBackKeyboard() [][]tgAPI.InlineButton {
+func createBackKeyboard() {
 	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("home", "Back To Main Menu", handleHome)})
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("cmd", "Commands", handleCommand)})
-	return finalKeyboard
+	keyboards["back"] = finalKeyboard
 }
 
 func createBtn(uniqueName, text string, callback func(*tgAPI.Callback)) tgAPI.InlineButton {

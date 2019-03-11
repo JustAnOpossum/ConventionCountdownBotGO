@@ -20,6 +20,9 @@ func setUpBot(botMode string) *tgAPI.Bot {
 	case "prod":
 		break
 	case "send":
+		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
+			Token: os.Getenv("TOKEN"),
+		})
 		break
 	}
 	if err != nil {
