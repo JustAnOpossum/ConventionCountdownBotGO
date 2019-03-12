@@ -1,57 +1,73 @@
-package main
+package helper
 
 import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )
 
-type credit struct {
+//Credit Credit Struct
+type Credit struct {
 	_id   bson.ObjectId
 	Photo string
 	Used  bool
 	Name  string
 }
 
-type user struct {
+//User user Struct
+type User struct {
 	_id    bson.ObjectId
 	ChatID int64 `bson:"chatId"`
 	Name   string
 	Group  bool
 }
 
-type datastore struct {
+// Datastore Is the Handlaer for methods
+type Datastore struct {
 	session *mgo.Session
 }
 
-func (datastore *datastore) findOne(collectionName string, query bson.M, result interface{}) {
+//FindOne Finds one item
+func (datastore *Datastore) FindOne(collectionName string, query bson.M, result interface{}) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
 	data.DB("").C(collectionName).Find(query).One(result)
 }
 
-func (datastore *datastore) findAll(collectionName string, query bson.M, results interface{}) {
+//FindAll Finds all items
+func (datastore *Datastore) FindAll(collectionName string, query bson.M, results interface{}) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
 	data.DB("").C(collectionName).Find(query).All(results)
 }
 
-func (datastore *datastore) insert(collectionName string, itemToIntert interface{}) {
+//Insert Inserts item
+func (datastore *Datastore) Insert(collectionName string, itemToIntert interface{}) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
 	data.DB("").C(collectionName).Insert(itemToIntert)
 }
 
-func (datastore *datastore) update(collectionName string, query, itemToUpdate bson.M) {
+//Update Updates item
+func (datastore *Datastore) Update(collectionName string, query, itemToUpdate bson.M) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
 	data.DB("").C(collectionName).Update(query, itemToUpdate)
 }
 
-func (datastore *datastore) itemExists(collectionName string, query bson.M) bool {
+//RemoveOne Removes one item
+func (datastore *Datastore) RemoveOne(collectionName string, query bson.M) {
+	data := datastore.session.Copy()
+	defer data.Close()
+
+	data.DB("").C(collectionName).Remove(query)
+}
+
+//ItemExists See if item is there
+func (datastore *Datastore) ItemExists(collectionName string, query bson.M) bool {
 	data := datastore.session.Copy()
 	defer data.Close()
 	var result []interface{}
@@ -62,7 +78,8 @@ func (datastore *datastore) itemExists(collectionName string, query bson.M) bool
 	return true
 }
 
-func setUpDB(dbName string) *datastore {
+//SetUpDB sets up Database
+func SetUpDB(dbName string) *Datastore {
 	session, err := mgo.Dial("localhost/" + dbName)
 	if err != nil {
 		panic(err)
@@ -86,5 +103,5 @@ func setUpDB(dbName string) *datastore {
 	if err = statbotSession.DB("").C("users").EnsureIndex(genIndex([]string{"chatId"})); err != nil {
 		panic(err)
 	}
-	return &datastore{session: session}
+	return &Datastore{session: session}
 }

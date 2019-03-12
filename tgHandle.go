@@ -1,6 +1,8 @@
 package main
 
 import (
+	"conBot/helper"
+
 	"github.com/globalsign/mgo/bson"
 	tgAPI "gopkg.in/tucnak/telebot.v2"
 )
@@ -9,12 +11,27 @@ import (
 
 func findSubOrUnsubKeyboard(chatID int64) [][]tgAPI.InlineButton {
 	var keyboardToSend [][]tgAPI.InlineButton
-	if db.itemExists("users", bson.M{"chatId": chatID}) == true {
+	if db.ItemExists("users", bson.M{"chatId": chatID}) == true {
 		keyboardToSend = keyboards["mainUnsub"]
 	} else {
 		keyboardToSend = keyboards["mainSub"]
 	}
 	return keyboardToSend
+}
+
+func getChatUser(chat *tgAPI.Chat, user *tgAPI.User) (*tgAPI.ChatMember, error) {
+	chatMember, err := bot.ChatMemberOf(chat, user)
+	if err != nil {
+		return nil, err
+	}
+	return chatMember, nil
+}
+
+func checkForAdmin(chatMember *tgAPI.ChatMember) bool {
+	if chatMember.Role == "creator" || chatMember.Role == "administrator" {
+		return true
+	}
+	return false
 }
 
 func handleStart(msg *tgAPI.Message) {
@@ -26,9 +43,28 @@ func handleStart(msg *tgAPI.Message) {
 	})
 }
 
+func handleGroupAdd(msg *tgAPI.Message) {
+	bot.Send(msg.Chat, config.GroupAddMsg, &tgAPI.ReplyMarkup{
+		InlineKeyboard: findSubOrUnsubKeyboard(msg.Chat.ID),
+	})
+}
+
 //Handalers For Keybaord
 func handleSubBtn(c *tgAPI.Callback) {
-	status := handleSub(c.Message.Chat)
+	if c.Message.FromGroup() == true {
+		chatUser, err := getChatUser(c.Message.Chat, c.Sender)
+		if err != nil {
+			handleBtnClick("An Error Occured", keyboards["back"], c)
+			handleErr(err)
+			return
+		}
+		isAdmin := checkForAdmin(chatUser)
+		if isAdmin == false {
+			handleBtnClick(config.GroupNotAdminMsg, keyboards["back"], c)
+			return
+		}
+	}
+	status := handleSub(c.Message)
 	if status == true {
 		handleBtnClick(config.SubMsg, keyboards["back"], c)
 	} else {
@@ -37,7 +73,25 @@ func handleSubBtn(c *tgAPI.Callback) {
 }
 
 func handleUnsubBtn(c *tgAPI.Callback) {
-	handleBtnClick(config.SubMsg, keyboards["back"], c)
+	if c.Message.FromGroup() == true {
+		chatUser, err := getChatUser(c.Message.Chat, c.Sender)
+		if err != nil {
+			handleBtnClick("An Error Occured", keyboards["back"], c)
+			handleErr(err)
+			return
+		}
+		isAdmin := checkForAdmin(chatUser)
+		if isAdmin == false {
+			handleBtnClick(config.GroupNotAdminMsg, keyboards["back"], c)
+			return
+		}
+	}
+	status := handleUnsub(c.Message)
+	if status == true {
+		handleBtnClick(config.UnsubMsg, keyboards["back"], c)
+	} else {
+		handleBtnClick(config.NotSubMsg, keyboards["back"], c)
+	}
 }
 
 func handleCommandBtn(c *tgAPI.Callback) {
@@ -45,7 +99,7 @@ func handleCommandBtn(c *tgAPI.Callback) {
 }
 
 func handleHomeBtn(c *tgAPI.Callback) {
-	handleBtnClick(config.WelcomeMsg, keyboards["mainUnsub"], c)
+	handleBtnClick(config.WelcomeMsg, findSubOrUnsubKeyboard(c.Message.Chat.ID), c)
 }
 
 func handleInfoBtn(c *tgAPI.Callback) {
@@ -53,27 +107,27 @@ func handleInfoBtn(c *tgAPI.Callback) {
 }
 
 func handleDaysBtn(c *tgAPI.Callback) {
-	dayStr := getDays() + " Days Until " + config.Con + " !"
+	dayStr := helper.GetDays(config.Date) + " Days Until " + config.Con + " !"
 	handleBtnClick(dayStr, keyboards["back"], c)
 }
 
-func handleSub(chat *tgAPI.Chat) bool {
-	if db.itemExists("users", bson.M{"chatId": chat.ID}) == true {
+func handleSub(msg *tgAPI.Message) bool {
+	if db.ItemExists("users", bson.M{"chatId": msg.Chat.ID}) == true {
 		return false
 	}
-	var isGroup bool
-	if chat.Type != "ChatPrivate" {
-		isGroup = true
+	itemToInsert := helper.User{
+		ChatID: msg.Chat.ID,
+		Name:   msg.Chat.Username,
+		Group:  msg.FromGroup(),
 	}
-	itemToInsert := user{
-		ChatID: chat.ID,
-		Name:   chat.Username,
-		Group:  isGroup,
-	}
-	db.insert("users", itemToInsert)
+	db.Insert("users", itemToInsert)
 	return true
 }
 
-func handleUnsub() {
-
+func handleUnsub(msg *tgAPI.Message) bool {
+	if db.ItemExists("users", bson.M{"chatId": msg.Chat.ID}) == false {
+		return false
+	}
+	db.RemoveOne("users", bson.M{"chatId": msg.Chat.ID})
+	return true
 }
