@@ -15,16 +15,19 @@ import (
 
 var bot *tgAPI.Bot
 var config configStruct
+var db *datastore
 var dataDir = os.Getenv("DATADIR")
 
 type configStruct struct {
-	Con        string
-	WelcomeMsg string
-	SubMsg     string
-	UnsubMsg   string
-	CmdMsg     string
-	InfoMsg    string
-	Date       time.Time
+	Con           string
+	WelcomeMsg    string
+	SubMsg        string
+	AlreadySubMsg string
+	UnsubMsg      string
+	CmdMsg        string
+	InfoMsg       string
+	Date          time.Time
+	DBName        string
 }
 
 func main() {
@@ -40,6 +43,7 @@ func main() {
 	if err != nil {
 		panic(nil)
 	}
+	db = setUpDB(config.DBName)
 
 	createMainMenu(true)
 	createMainMenu(false)
