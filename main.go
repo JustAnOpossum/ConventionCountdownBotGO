@@ -17,7 +17,9 @@ func main() {
 	bot = setUpBot("test")
 
 	bot.Handle("/start", handleStart)
+	bot.Handle("/menu", handleStart)
 	bot.Handle(tgAPI.OnAddedToGroup, handleGroupAdd)
+	bot.Handle(tgAPI.OnMigration, handleMigration)
 
 	helper.LoadConfig(dataDir, &config)
 	db = helper.SetUpDB(config.DBName)
