@@ -13,7 +13,7 @@ func setUpBot(botMode string) *tgAPI.Bot {
 	switch botMode {
 	case "test":
 		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
-			Token:  os.Getenv("TOKEN"),
+			Token:  config.Token,
 			Poller: &tgAPI.LongPoller{Timeout: 10 * time.Second},
 		})
 		break
