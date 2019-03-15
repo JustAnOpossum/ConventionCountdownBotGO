@@ -111,7 +111,7 @@ func handleInfoBtn(c *tgAPI.Callback) {
 }
 
 func handleDaysBtn(c *tgAPI.Callback) {
-	dayStr := getDays(config.Date) + " Days Until " + config.Con + " !"
+	dayStr := strconv.Itoa(getDays(config.Date)) + " Days Until " + config.Con + " !"
 	handleBtnClick(dayStr, keyboards["back"], c)
 }
 

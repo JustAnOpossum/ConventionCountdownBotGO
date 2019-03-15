@@ -5,11 +5,12 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-type credit struct {
+type photo struct {
 	_id   bson.ObjectId
 	Photo string
 	Used  bool
 	Name  string
+	URL   string
 }
 
 type user struct {
@@ -76,6 +77,14 @@ func (datastore *datastore) itemExists(collectionName string, query bson.M) bool
 	return true
 }
 
+func (datastore *datastore) distinct(collectionName string, query bson.M, distinctKey string) []string {
+	data := datastore.session.Copy()
+	defer data.Close()
+	var tempResult []string
+	data.DB("").C(collectionName).Find(query).Distinct(distinctKey, &tempResult)
+	return tempResult
+}
+
 func setUpDB(dbName string) *datastore {
 	session, err := mgo.Dial("localhost/" + dbName)
 	if err != nil {
@@ -94,7 +103,7 @@ func setUpDB(dbName string) *datastore {
 	statbotSession := session.Copy()
 	defer statbotSession.Close()
 
-	if err = statbotSession.DB("").C("credits").EnsureIndex(genIndex([]string{"photo", "name"})); err != nil {
+	if err = statbotSession.DB("").C("photos").EnsureIndex(genIndex([]string{"photo", "name"})); err != nil {
 		panic(err)
 	}
 	if err = statbotSession.DB("").C("users").EnsureIndex(genIndex([]string{"chatId"})); err != nil {

@@ -3,9 +3,14 @@ package main
 import (
 	"archive/zip"
 	"bufio"
-	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
+	"path"
+	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 var zipFilePath string
@@ -14,11 +19,12 @@ var creditURL string
 
 func askQuestions() {
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("What is the Data Dir: ")
+	fmt.Print("Bot Data Directory: ")
 	scanner.Scan()
 	dataDir = scanner.Text()
+	imgDir = dataDir + "/img"
 
-	fmt.Print("ZIP File Path to Upload: ")
+	fmt.Print("Path to ZIP File: ")
 	scanner.Scan()
 	zipFilePath = scanner.Text()
 
@@ -37,12 +43,41 @@ func uploadZip() error {
 		return errors.New("Cannot Open Zip file")
 	}
 	defer zipFile.Close()
-	for _, file := range zipFile.File {
-		processZipFile(file)
+	for i, file := range zipFile.File {
+		err = processZipFile(file)
+		if err != nil {
+			return errors.Wrap(err, "Processing Zip Img")
+		}
+		fmt.Println("Added Photo #" + strconv.Itoa(i))
 	}
 	return nil
 }
 
-func processZipFile(file *zip.File) {
-	fileName := file.Name
+func processZipFile(file *zip.File) error {
+	openFile, err := file.Open()
+	if err != nil {
+		return errors.Wrap(err, "Open Photo From Zip")
+	}
+	readFile, err := ioutil.ReadAll(openFile)
+	if err != nil {
+		return errors.Wrap(err, "Reading Zip File")
+	}
+	fileType := http.DetectContentType(readFile)
+	if fileType != "image/png" && fileType != "image/jpeg" {
+		return nil
+	}
+	err = ioutil.WriteFile(path.Join(imgDir, file.Name), readFile, 0664)
+	if err != nil {
+		return errors.Wrap(err, "Writing File")
+	}
+
+	itemToInsert := photo{
+		Photo: file.Name,
+		Used:  false,
+		Name:  creditName,
+		URL:   creditURL,
+	}
+	db.insert("photos", itemToInsert)
+
+	return nil
 }

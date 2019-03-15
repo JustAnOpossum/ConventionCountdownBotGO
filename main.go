@@ -7,9 +7,9 @@ import (
 	"math"
 	"os"
 	"path"
-	"strconv"
 	"time"
 
+	"gopkg.in/gographics/imagick.v3/imagick"
 	tgAPI "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -19,6 +19,7 @@ type configStruct struct {
 	DBName  string
 	Token   string
 	MainBot mainBotStruct
+	ImgSend imgSendStruct
 }
 
 type mainBotStruct struct {
@@ -34,34 +35,52 @@ type mainBotStruct struct {
 	Owners           string
 }
 
+type imgSendStruct struct {
+	DayToStart  int
+	GravityMode imagick.GravityType
+}
+
 var bot *tgAPI.Bot
 var config configStruct
 var db *datastore
 var dataDir = os.Getenv("DATADIR")
+var imgDir = dataDir + "/img"
 
 func main() {
 	if os.Getenv("MODE") == "" {
 		askQuestions()
 		loadConfig(dataDir, &config)
+		fmt.Println("Please Wait... Connecting to Database")
+		db = setUpDB(config.DBName)
+		fmt.Println("Connected to Database!")
 		err := uploadZip()
 		if err != nil {
 			fmt.Println(err)
 		}
+		fmt.Println("Added All Photos!")
+		db.session.Close()
 		return
 	}
 
 	loadConfig(dataDir, &config)
+	db = setUpDB(config.DBName)
 
 	switch os.Getenv("MODE") {
 	case "test":
-		db = setUpDB(config.DBName)
-
 		bot = setUpBot("test")
 		break
 	case "main":
 		break
 	case "send":
-		break
+		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
+			return
+		}
+		err := createImg()
+		if err != nil {
+			fmt.Printf("+%v", err)
+		}
+		db.session.Close()
+		return
 	}
 
 	bot.Handle("/start", handleStart)
@@ -82,11 +101,11 @@ func handleErr(err error) {
 	fmt.Printf("%+v", err)
 }
 
-func getDays(day time.Time) string {
+func getDays(day time.Time) int {
 	timeUntil := day.Sub(time.Now())
 	daysUntil := timeUntil.Hours() / 24
 	daysRounded := math.Round(daysUntil)
-	return strconv.Itoa(int(daysRounded))
+	return int(daysRounded)
 }
 
 func loadConfig(dataDir string, configVar *configStruct) {
