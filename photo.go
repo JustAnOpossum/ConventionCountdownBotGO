@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
 	"math/rand"
 	"os"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/generaltso/vibrant"
@@ -16,40 +16,40 @@ import (
 	"gopkg.in/gographics/imagick.v3/imagick"
 )
 
-func createImg() error {
+var foundGravity imagick.GravityType
+
+func createImg() (*[]byte, error) {
 	img := findImg()
 	imgColors, err := getImgColors(img)
 	if err != nil {
-		return errors.Wrap(err, "Getting Color Pallete")
+		return nil, errors.Wrap(err, "Getting Color Pallete")
 	}
-	drawImgText(img, imgColors)
-	return nil
+	imgWand := imagick.NewMagickWand()
+	defer imgWand.Destroy()
+	drawImgText(imgWand, img, imgColors)
+	imgWand.SetImageFormat("JPEG")
+	imgBlob := imgWand.GetImageBlob()
+	return &imgBlob, nil
 }
 
-func drawImgText(img photo, colors *vibrant.Swatch) {
+func drawImgText(imgWand *imagick.MagickWand, img photo, colors *vibrant.Swatch) {
 	loadedImg, _ := os.Open(path.Join(imgDir, img.Photo))
 	defer loadedImg.Close()
 
-	imgWand := imagick.NewMagickWand()
 	textWand := imagick.NewDrawingWand()
 	textColor := imagick.NewPixelWand()
-	defer imgWand.Destroy()
 	defer textWand.Destroy()
 	defer textColor.Destroy()
 	imgWand.ReadImageFile(loadedImg)
 
-	width := float64(imgWand.GetImageWidth())
-	height := float64(imgWand.GetImageHeight())
-	fmt.Println(width/2, height/2)
-	textColor.SetColor("red")
-	textWand.SetFontSize(150)
+	textColor.SetColor(colors.Color.RGBHex())
+	textWand.SetFont(path.Join(dataDir, config.ImgSend.Font))
+	textWand.SetFontSize(config.ImgSend.FontSize)
 	textWand.SetFillColor(textColor)
-	textWand.SetGravity(config.ImgSend.GravityMode)
-	textWand.Annotation(0, 0, "109")
+	textWand.SetGravity(imagick.GRAVITY_SOUTH_WEST)
+	textWand.Annotation(0, 0, strconv.Itoa(getDays(config.Date)))
 
 	imgWand.DrawImage(textWand)
-	err := imgWand.WriteImage("test.jpg")
-	fmt.Println(err)
 }
 
 func findImg() photo {
@@ -57,11 +57,11 @@ func findImg() photo {
 	source := rand.NewSource(time.Now().UnixNano())
 	random := rand.New(source)
 
-	var nameToFind photo
+	var nameToFind []photo
 	nameToSearch := items[random.Intn(len(items))]
-	db.findOne("photos", bson.M{"used": false, "name": nameToSearch}, &nameToFind)
+	db.findAll("photos", bson.M{"used": false, "name": nameToSearch}, &nameToFind)
 
-	return nameToFind
+	return nameToFind[random.Intn(len(nameToFind))]
 }
 
 func getImgColors(img photo) (*vibrant.Swatch, error) {

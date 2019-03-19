@@ -9,7 +9,6 @@ import (
 	"path"
 	"time"
 
-	"gopkg.in/gographics/imagick.v3/imagick"
 	tgAPI "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -36,8 +35,9 @@ type mainBotStruct struct {
 }
 
 type imgSendStruct struct {
-	DayToStart  int
-	GravityMode imagick.GravityType
+	DayToStart int
+	FontSize   float64
+	Font       string
 }
 
 var bot *tgAPI.Bot
@@ -75,10 +75,12 @@ func main() {
 		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
 			return
 		}
-		err := createImg()
+		imgBlob, err := createImg()
 		if err != nil {
 			fmt.Printf("+%v", err)
 		}
+		checkForAPI()
+		sendPhoto(imgBlob)
 		db.session.Close()
 		return
 	}

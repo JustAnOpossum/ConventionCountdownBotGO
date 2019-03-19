@@ -3,12 +3,19 @@ package main
 import (
 	"archive/zip"
 	"bufio"
+	"bytes"
 	"fmt"
+	"image"
+	"image/jpeg"
+	_ "image/jpeg"
+	_ "image/png"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
+
+	"github.com/nfnt/resize"
 
 	"github.com/pkg/errors"
 )
@@ -66,6 +73,13 @@ func processZipFile(file *zip.File) error {
 	if fileType != "image/png" && fileType != "image/jpeg" {
 		return nil
 	}
+	if file.UncompressedSize64 > 5000000 {
+		fmt.Println("Called Reszie Img")
+		err = resizeImg(&readFile, bytes.NewReader(readFile))
+		if err != nil {
+			return errors.Wrap(err, "Resizing Img")
+		}
+	}
 	err = ioutil.WriteFile(path.Join(imgDir, file.Name), readFile, 0664)
 	if err != nil {
 		return errors.Wrap(err, "Writing File")
@@ -79,5 +93,21 @@ func processZipFile(file *zip.File) error {
 	}
 	db.insert("photos", itemToInsert)
 
+	return nil
+}
+
+func resizeImg(outputImg *[]byte, inputReader *bytes.Reader) error {
+	tempImg, _, err := image.Decode(inputReader)
+	if err != nil {
+		return errors.Wrap(err, "Decoding Img")
+	}
+	resizedImg := resize.Resize(1000, 0, tempImg, resize.Lanczos3)
+	tempBuffer := new(bytes.Buffer)
+	err = jpeg.Encode(tempBuffer, resizedImg, nil)
+	if err != nil {
+		return errors.Wrap(err, "Encoding Jpeg")
+	}
+	tempBytes := tempBuffer.Bytes()
+	*outputImg = tempBytes
 	return nil
 }
