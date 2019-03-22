@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"time"
 
 	tgAPI "gopkg.in/tucnak/telebot.v2"
@@ -21,7 +20,7 @@ func setUpBot(botMode string) *tgAPI.Bot {
 		break
 	case "send":
 		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
-			Token: os.Getenv("TOKEN"),
+			Token: config.Token,
 		})
 		break
 	}

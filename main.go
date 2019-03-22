@@ -35,35 +35,42 @@ type mainBotStruct struct {
 }
 
 type imgSendStruct struct {
-	DayToStart int
-	FontSize   float64
-	Font       string
+	DayToStart  int
+	FontSize    float64
+	Font        string
+	AnimalEmoji string
 }
 
 var bot *tgAPI.Bot
 var config configStruct
-var db *datastore
+var users *datastore
+var photos *datastore
 var dataDir = os.Getenv("DATADIR")
 var imgDir = dataDir + "/img"
+var out = ioutil.Discard
 
 func main() {
+	if os.Getenv("DEBUG") == "true" {
+		out = os.Stdout
+	}
+
 	if os.Getenv("MODE") == "" {
 		askQuestions()
 		loadConfig(dataDir, &config)
 		fmt.Println("Please Wait... Connecting to Database")
-		db = setUpDB(config.DBName)
+		users, photos = setUpDB(config.DBName)
 		fmt.Println("Connected to Database!")
 		err := uploadZip()
 		if err != nil {
 			fmt.Println(err)
 		}
 		fmt.Println("Added All Photos!")
-		db.session.Close()
+		users.session.Close()
 		return
 	}
 
 	loadConfig(dataDir, &config)
-	db = setUpDB(config.DBName)
+	users, photos = setUpDB(config.DBName)
 
 	switch os.Getenv("MODE") {
 	case "test":
@@ -72,16 +79,18 @@ func main() {
 	case "main":
 		break
 	case "send":
+		bot = setUpBot("send")
 		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
 			return
 		}
-		imgBlob, err := createImg()
+		returnedImg, err := createImg()
+		fmt.Fprintln(out, "Got Image")
 		if err != nil {
 			fmt.Printf("+%v", err)
 		}
 		checkForAPI()
-		sendPhoto(imgBlob)
-		db.session.Close()
+		sendPhoto(returnedImg)
+		users.session.Close()
 		return
 	}
 

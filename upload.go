@@ -91,7 +91,7 @@ func processZipFile(file *zip.File) error {
 		Name:  creditName,
 		URL:   creditURL,
 	}
-	db.insert("photos", itemToInsert)
+	photos.insert(itemToInsert)
 
 	return nil
 }

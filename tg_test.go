@@ -8,12 +8,11 @@ import (
 )
 
 func TestSetUpDB(t *testing.T) {
-	if db == nil {
-		testDB := setUpDB("testing")
-		db = testDB
+	if photos == nil || users == nil {
+		users, photos = setUpDB("testing")
 	}
-	db.removeAll("users", bson.M{})
-	db.removeAll("credits", bson.M{})
+	users.removeAll(bson.M{})
+	photos.removeAll(bson.M{})
 }
 
 func TestCheckForAdmin(t *testing.T) {
@@ -53,7 +52,7 @@ func TestSubscibeGroup(t *testing.T) {
 		t.Error("Result Is False")
 	}
 	var item user
-	db.findOne("users", bson.M{"chatId": inputMsgGroup.Chat.ID}, &item)
+	users.findOne(bson.M{"chatId": inputMsgGroup.Chat.ID}, &item)
 	if item.ChatID != 0 && item.Group == false {
 		t.Error("Chat Id Not Correct or Group Not Correct")
 		t.Error(item.ChatID)
@@ -79,7 +78,7 @@ func TestSubscibeUser(t *testing.T) {
 		t.Error("Result Is False")
 	}
 	var item user
-	db.findOne("users", bson.M{"chatId": inputMsgUser.Chat.ID}, &item)
+	users.findOne(bson.M{"chatId": inputMsgUser.Chat.ID}, &item)
 	if item.ChatID != 0 && item.Group == true {
 		t.Error("Chat Id Not Correct or Group Not Correct")
 		t.Error(item.ChatID)
@@ -110,7 +109,7 @@ func TestUnsubscribe(t *testing.T) {
 	if result := handleUnsub(fakeMsg); result == false {
 		t.Error("Result is false")
 	}
-	if result := db.itemExists("users", bson.M{"chatId": fakeMsg.Chat.ID}); result == true {
+	if result := users.itemExists(bson.M{"chatId": fakeMsg.Chat.ID}); result == true {
 		t.Error("Item Not Deleted")
 	}
 }
@@ -127,7 +126,7 @@ func TestHandleMigration(t *testing.T) {
 	handleSub(inputMsgGroup)
 
 	handleMigration(123, 456)
-	if result := db.itemExists("users", bson.M{"chatId": 456}); result == false {
+	if result := users.itemExists(bson.M{"chatId": 456}); result == false {
 		t.Error("Update Failed")
 	}
 }

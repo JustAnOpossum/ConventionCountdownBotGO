@@ -15,77 +15,78 @@ type photo struct {
 
 type user struct {
 	_id    bson.ObjectId
-	ChatID int64 `bson:"chatId"`
+	ChatID int `bson:"chatId"`
 	Name   string
 	Group  bool
 }
 
 type datastore struct {
-	session *mgo.Session
+	session       *mgo.Session
+	collectioName string
 }
 
-func (datastore *datastore) findOne(collectionName string, query bson.M, result interface{}) {
+func (datastore *datastore) findOne(query bson.M, result interface{}) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
-	data.DB("").C(collectionName).Find(query).One(result)
+	data.DB("").C(datastore.collectioName).Find(query).One(result)
 }
 
-func (datastore *datastore) findAll(collectionName string, query bson.M, results interface{}) {
+func (datastore *datastore) findAll(query bson.M, results interface{}) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
-	data.DB("").C(collectionName).Find(query).All(results)
+	data.DB("").C(datastore.collectioName).Find(query).All(results)
 }
 
-func (datastore *datastore) insert(collectionName string, itemToIntert interface{}) {
+func (datastore *datastore) insert(itemToIntert interface{}) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
-	data.DB("").C(collectionName).Insert(itemToIntert)
+	data.DB("").C(datastore.collectioName).Insert(itemToIntert)
 }
 
-func (datastore *datastore) update(collectionName string, query, itemToUpdate bson.M) {
+func (datastore *datastore) update(query, itemToUpdate bson.M) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
-	data.DB("").C(collectionName).Update(query, itemToUpdate)
+	data.DB("").C(datastore.collectioName).Update(query, itemToUpdate)
 }
 
-func (datastore *datastore) removeOne(collectionName string, query bson.M) {
+func (datastore *datastore) removeOne(query bson.M) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
-	data.DB("").C(collectionName).Remove(query)
+	data.DB("").C(datastore.collectioName).Remove(query)
 }
 
-func (datastore *datastore) removeAll(collectionName string, query bson.M) {
+func (datastore *datastore) removeAll(query bson.M) {
 	data := datastore.session.Copy()
 	defer data.Close()
 
-	data.DB("").C(collectionName).RemoveAll(query)
+	data.DB("").C(datastore.collectioName).RemoveAll(query)
 }
 
-func (datastore *datastore) itemExists(collectionName string, query bson.M) bool {
+func (datastore *datastore) itemExists(query bson.M) bool {
 	data := datastore.session.Copy()
 	defer data.Close()
 	var result []interface{}
-	data.DB("").C(collectionName).Find(query).All(&result)
+	data.DB("").C(datastore.collectioName).Find(query).All(&result)
 	if len(result) == 0 {
 		return false
 	}
 	return true
 }
 
-func (datastore *datastore) distinct(collectionName string, query bson.M, distinctKey string) []string {
+func (datastore *datastore) distinct(query bson.M, distinctKey string) []string {
 	data := datastore.session.Copy()
 	defer data.Close()
 	var tempResult []string
-	data.DB("").C(collectionName).Find(query).Distinct(distinctKey, &tempResult)
+	data.DB("").C(datastore.collectioName).Find(query).Distinct(distinctKey, &tempResult)
 	return tempResult
 }
 
-func setUpDB(dbName string) *datastore {
+func setUpDB(dbName string) (*datastore, *datastore) {
 	session, err := mgo.Dial("localhost/" + dbName)
 	if err != nil {
 		panic(err)
@@ -109,5 +110,5 @@ func setUpDB(dbName string) *datastore {
 	if err = statbotSession.DB("").C("users").EnsureIndex(genIndex([]string{"chatId"})); err != nil {
 		panic(err)
 	}
-	return &datastore{session: session}
+	return &datastore{session: session, collectioName: "users"}, &datastore{session: session, collectioName: "photos"}
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"strconv"
 	"strings"
 
@@ -12,7 +11,7 @@ import (
 //Handlers From Telegram
 func findSubOrUnsubKeyboard(chatID int64) [][]tgAPI.InlineButton {
 	var keyboardToSend [][]tgAPI.InlineButton
-	if db.itemExists("users", bson.M{"chatId": chatID}) == true {
+	if users.itemExists(bson.M{"chatId": chatID}) == true {
 		keyboardToSend = keyboards["mainUnsub"]
 	} else {
 		keyboardToSend = keyboards["mainSub"]
@@ -58,10 +57,10 @@ func handleGroupAdd(msg *tgAPI.Message) {
 }
 
 func handleMigration(from, to int64) {
-	if db.itemExists("users", bson.M{"chatId": from}) == false {
+	if users.itemExists(bson.M{"chatId": from}) == false {
 		return
 	}
-	db.update("users", bson.M{"chatId": from}, bson.M{"$set": bson.M{"chatId": to}})
+	users.update(bson.M{"chatId": from}, bson.M{"$set": bson.M{"chatId": to}})
 }
 
 //Handalers For Keybaord
@@ -71,8 +70,7 @@ func handleSubBtn(c *tgAPI.Callback) {
 	status := handleSub(c.Message)
 	if status == true {
 		handleBtnClick(config.MainBot.SubMsg, keyboards["back"], c)
-		ownersEnv := os.Getenv("OWNERS")
-		owners := strings.Split(ownersEnv, ",")
+		owners := strings.Split(config.MainBot.Owners, ",")
 		for i := range owners {
 			idToSend, _ := strconv.Atoi(owners[i])
 			bot.Send(&tgAPI.User{
@@ -116,22 +114,22 @@ func handleDaysBtn(c *tgAPI.Callback) {
 }
 
 func handleSub(msg *tgAPI.Message) bool {
-	if db.itemExists("users", bson.M{"chatId": msg.Chat.ID}) == true {
+	if users.itemExists(bson.M{"chatId": msg.Chat.ID}) == true {
 		return false
 	}
 	itemToInsert := user{
-		ChatID: msg.Chat.ID,
+		ChatID: int(msg.Chat.ID),
 		Name:   msg.Chat.Username,
 		Group:  msg.FromGroup(),
 	}
-	db.insert("users", itemToInsert)
+	users.insert(itemToInsert)
 	return true
 }
 
 func handleUnsub(msg *tgAPI.Message) bool {
-	if db.itemExists("users", bson.M{"chatId": msg.Chat.ID}) == false {
+	if users.itemExists(bson.M{"chatId": msg.Chat.ID}) == false {
 		return false
 	}
-	db.removeOne("users", bson.M{"chatId": msg.Chat.ID})
+	users.removeOne(bson.M{"chatId": msg.Chat.ID})
 	return true
 }
