@@ -16,7 +16,6 @@ type photo struct {
 type user struct {
 	_id    bson.ObjectId
 	ChatID int `bson:"chatId"`
-	Name   string
 	Group  bool
 }
 

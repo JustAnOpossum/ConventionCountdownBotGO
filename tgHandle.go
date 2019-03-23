@@ -45,7 +45,9 @@ func handleStart(msg *tgAPI.Message) {
 	if msg.Chat.Type == "channel" || msg.Chat.Type == "privatechannel" {
 		return
 	}
-	bot.Send(msg.Sender, config.MainBot.WelcomeMsg, &tgAPI.ReplyMarkup{
+	bot.Send(&tgAPI.User{
+		ID: int(msg.Chat.ID),
+	}, config.MainBot.WelcomeMsg, &tgAPI.ReplyMarkup{
 		InlineKeyboard: findSubOrUnsubKeyboard(msg.Chat.ID),
 	})
 }
@@ -66,6 +68,9 @@ func handleMigration(from, to int64) {
 //Handalers For Keybaord
 func handleSubBtn(c *tgAPI.Callback) {
 	if c.Message.FromGroup() == true {
+		if shouldContinue := handleChatUser(c); shouldContinue == false {
+			return
+		}
 	}
 	status := handleSub(c.Message)
 	if status == true {
@@ -119,7 +124,6 @@ func handleSub(msg *tgAPI.Message) bool {
 	}
 	itemToInsert := user{
 		ChatID: int(msg.Chat.ID),
-		Name:   msg.Chat.Username,
 		Group:  msg.FromGroup(),
 	}
 	users.insert(itemToInsert)
