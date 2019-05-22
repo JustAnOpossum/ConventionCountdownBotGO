@@ -19,6 +19,7 @@ type configStruct struct {
 	Token   string
 	MainBot mainBotStruct
 	ImgSend imgSendStruct
+	Twitter twitterStruct
 }
 
 type mainBotStruct struct {
@@ -35,10 +36,19 @@ type mainBotStruct struct {
 }
 
 type imgSendStruct struct {
-	DayToStart  int
-	FontSize    float64
-	Font        string
-	AnimalEmoji string
+	DayToStart   int
+	FontSize     float64
+	Font         string
+	AnimalEmoji  string
+	Music        string
+	VideoCaption string
+}
+
+type twitterStruct struct {
+	ConsumerKey    string
+	ConsumerSecret string
+	AccessToken    string
+	AccessSecret   string
 }
 
 var bot *tgAPI.Bot
@@ -47,6 +57,7 @@ var users *datastore
 var photos *datastore
 var dataDir = os.Getenv("DATADIR")
 var imgDir = dataDir + "/img"
+var countdownDir = dataDir + "/countdown"
 var out = ioutil.Discard
 
 func main() {
@@ -79,17 +90,30 @@ func main() {
 	case "main":
 		break
 	case "send":
+		var err error
 		bot = setUpBot("send")
 		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
 			return
 		}
-		returnedImg, err := createImg()
-		fmt.Fprintln(out, "Got Image")
+		checkForAPI()
+		if getDays(config.Date) == 0 {
+			if slideshow, err := createSlideShow(); err == nil {
+				err = sendVideo(slideshow)
+			}
+		} else {
+			returnedImg, err := createImg()
+			fmt.Fprintln(out, "Got Image")
+			if err != nil {
+				fmt.Printf("+%v", err)
+			}
+			err = sendTelegramPhoto(returnedImg)
+			if config.Twitter.ConsumerKey != "" {
+				err = sendTwitterPhoto(returnedImg)
+			}
+		}
 		if err != nil {
 			fmt.Printf("+%v", err)
 		}
-		checkForAPI()
-		sendPhoto(returnedImg)
 		users.session.Close()
 		return
 	}
@@ -105,6 +129,9 @@ func main() {
 	createCmdKeybaord()
 
 	fmt.Println("Telegram Bot is Started")
+
+	createSlideShow()
+
 	bot.Start()
 }
 

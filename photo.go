@@ -19,6 +19,7 @@ import (
 
 type finalImg struct {
 	ImgReader  *bytes.Reader
+	FilePath   string
 	CreditName string
 	CreditURL  string
 	DaysLeft   int
@@ -42,7 +43,12 @@ func createImg() (finalImg, error) {
 	defer imgWand.Destroy()
 	drawImgText(imgWand, img, imgColors)
 	imgWand.SetImageFormat("JPEG")
+	fileName := strconv.Itoa(getDays(config.Date))
 	imgToReturn.ImgReader = bytes.NewReader(imgWand.GetImageBlob())
+	imgWand.WriteImage(fileName)
+	imgToReturn.FilePath = fileName
+
+	photos.update(bson.M{"photo": img.Photo}, bson.M{"$set": bson.M{"used": true}})
 	return imgToReturn, nil
 }
 
