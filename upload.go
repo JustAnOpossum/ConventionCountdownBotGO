@@ -74,7 +74,7 @@ func processZipFile(file *zip.File) error {
 		return nil
 	}
 	if file.UncompressedSize64 > 5000000 {
-		fmt.Println("Called Reszie Img")
+		fmt.Fprintln(out, "Called Reszie Img")
 		err = resizeImg(&readFile, bytes.NewReader(readFile))
 		if err != nil {
 			return errors.Wrap(err, "Resizing Img")

@@ -80,10 +80,11 @@ func main() {
 		users, photos = setUpDB(config.DBName)
 		fmt.Println("Connected to Database!")
 		err := uploadZip()
-		if err != nil {
+		if err == nil {
+			fmt.Println("Added All Photos!")
+		} else {
 			fmt.Println(err)
 		}
-		fmt.Println("Added All Photos!")
 		users.session.Close()
 		return
 	}
