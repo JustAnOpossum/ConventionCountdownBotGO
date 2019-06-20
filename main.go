@@ -95,6 +95,9 @@ func main() {
 	case "test":
 		bot = setUpBot("test")
 		break
+	case "prod":
+		bot = setUpBot("prod")
+		break
 	case "main":
 		break
 	case "send":
