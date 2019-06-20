@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math/rand"
 	"net/http"
 	"os/exec"
 	"path"
@@ -20,7 +19,7 @@ import (
 func sendTelegramPhoto(img finalImg) error {
 	sendPhoto := tgAPI.Photo{
 		File:    tgAPI.FromReader(img.ImgReader),
-		Caption: intToEmoji(img.DaysLeft) + " Days Until " + config.Con + "! " + findRandomAnimalEmoji() + "\n\n📸: [" + img.CreditName + "](" + img.CreditURL + ")",
+		Caption: intToEmoji(img.DaysLeft) + " Days Until " + config.Con + "!\n\n📸: [" + img.CreditName + "](" + img.CreditURL + ")",
 	}
 	var allUsers []user
 	users.findAll(bson.M{}, &allUsers)
@@ -145,12 +144,13 @@ func intToEmoji(input int) string {
 	return finalString
 }
 
-func findRandomAnimalEmoji() string {
-	animals := strings.Split(config.ImgSend.AnimalEmoji, ",")
-	randSrc := rand.NewSource(time.Now().Unix())
-	random := rand.New(randSrc)
-	return animals[random.Intn(len(animals))]
-}
+//Gone, maybe used later
+// func findRandomAnimalEmoji() string {
+// 	animals := strings.Split(config.ImgSend.AnimalEmoji, ",")
+// 	randSrc := rand.NewSource(time.Now().Unix())
+// 	random := rand.New(randSrc)
+// 	return animals[random.Intn(len(animals))]
+// }
 
 func checkForAPI() {
 	for {

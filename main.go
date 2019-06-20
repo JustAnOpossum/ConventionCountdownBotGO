@@ -41,7 +41,6 @@ type imgSendStruct struct {
 	DayToStart   int
 	FontSize     float64
 	Font         string
-	AnimalEmoji  string
 	Music        string
 	VideoCaption string
 }
@@ -139,7 +138,7 @@ func main() {
 					return
 				}
 
-				twitterCaption := intToEmoji(returnedImg.DaysLeft) + " Days Until " + config.Con + "! " + findRandomAnimalEmoji() + "\n\n📸: " + returnedImg.CreditName + " " + returnedImg.CreditURL
+				twitterCaption := intToEmoji(returnedImg.DaysLeft) + " Days Until " + config.Con + "!\n\n📸: " + returnedImg.CreditName + " " + returnedImg.CreditURL
 				sendMediaTweet(mediaID, twitterCaption)
 			}
 		}
