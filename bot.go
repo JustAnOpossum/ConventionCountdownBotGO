@@ -20,7 +20,7 @@ func setUpBot(botMode string) *tgAPI.Bot {
 		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
 			Token: config.Token,
 			Poller: &tgAPI.Webhook{
-				Listen: config.WebhookPort,
+				Listen: ":" + config.WebhookPort,
 				Endpoint: &tgAPI.WebhookEndpoint{
 					PublicURL: config.WebhookURL,
 				},
