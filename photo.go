@@ -20,6 +20,7 @@ import (
 type finalImg struct {
 	ImgReader  *bytes.Reader
 	FilePath   string
+	FileName   string
 	CreditName string
 	CreditURL  string
 	DaysLeft   int
@@ -43,10 +44,23 @@ func createImg() (finalImg, error) {
 	defer imgWand.Destroy()
 	drawImgText(imgWand, img, imgColors)
 	imgWand.SetImageFormat("JPEG")
-	fileName := strconv.Itoa(getDays(config.Date))
+	fileName := (strconv.Itoa(getDays(config.Date))) + ".jpg"
+	filePath := path.Join(dataDir, "countdown/"+fileName)
 	imgToReturn.ImgReader = bytes.NewReader(imgWand.GetImageBlob())
-	imgWand.WriteImage(fileName)
-	imgToReturn.FilePath = fileName
+	imgWand.WriteImage(filePath)
+	imgToReturn.FilePath = filePath
+
+	txtToAppend := []byte("\nfile 'countdown/" + fileName + "'\nduration 0.5")
+	slideshowFile, err := os.OpenFile(path.Join(dataDir, "slideshow.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return finalImg{}, errors.Wrap(err, "Slideshow File")
+	}
+	if _, err := slideshowFile.Write(txtToAppend); err != nil {
+		return finalImg{}, errors.Wrap(err, "Writing to Sliideshow File")
+	}
+	if err := slideshowFile.Close(); err != nil {
+		return finalImg{}, errors.Wrap(err, "Closing Slideshow File")
+	}
 
 	photos.update(bson.M{"photo": img.Photo}, bson.M{"$set": bson.M{"used": true}})
 	return imgToReturn, nil

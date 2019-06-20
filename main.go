@@ -13,13 +13,15 @@ import (
 )
 
 type configStruct struct {
-	Con     string
-	Date    time.Time
-	DBName  string
-	Token   string
-	MainBot mainBotStruct
-	ImgSend imgSendStruct
-	Twitter twitterStruct
+	Con         string
+	Date        time.Time
+	DBName      string
+	Token       string
+	WebhookURL  string
+	WebhookPort string
+	MainBot     mainBotStruct
+	ImgSend     imgSendStruct
+	Twitter     twitterStruct
 }
 
 type mainBotStruct struct {
@@ -60,6 +62,12 @@ var imgDir = dataDir + "/img"
 var countdownDir = dataDir + "/countdown"
 var out = ioutil.Discard
 
+func logError(err error) {
+	if err != nil {
+		fmt.Printf("+%v", err)
+	}
+}
+
 func main() {
 	if os.Getenv("DEBUG") == "true" {
 		out = os.Stdout
@@ -90,29 +98,46 @@ func main() {
 	case "main":
 		break
 	case "send":
-		var err error
 		bot = setUpBot("send")
 		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
 			return
 		}
 		checkForAPI()
 		if getDays(config.Date) == 0 {
-			if slideshow, err := createSlideShow(); err == nil {
-				err = sendVideo(slideshow)
+			slideshow, err := createSlideShow()
+			if err != nil {
+				logError(err)
+			}
+			err = sendTelegramVideo(slideshow)
+			logError(err)
+			if config.Twitter.ConsumerKey != "" {
+				mediaID, err := uploadTwitterMedia(slideshow, "video/mp4")
+				if err != nil {
+					logError(err)
+					return
+				}
+
+				sendMediaTweet(mediaID, config.ImgSend.VideoCaption)
 			}
 		} else {
 			returnedImg, err := createImg()
-			fmt.Fprintln(out, "Got Image")
 			if err != nil {
-				fmt.Printf("+%v", err)
+				logError(err)
+				return
 			}
+			fmt.Fprintln(out, "Got Image")
 			err = sendTelegramPhoto(returnedImg)
+			logError(err)
 			if config.Twitter.ConsumerKey != "" {
-				err = sendTwitterPhoto(returnedImg)
+				mediaID, err := uploadTwitterMedia(returnedImg.FilePath, "image/jpeg")
+				if err != nil {
+					logError(err)
+					return
+				}
+
+				twitterCaption := intToEmoji(returnedImg.DaysLeft) + " Days Until " + config.Con + "! " + findRandomAnimalEmoji() + "\n\n📸: " + returnedImg.CreditName + " " + returnedImg.CreditURL
+				sendMediaTweet(mediaID, twitterCaption)
 			}
-		}
-		if err != nil {
-			fmt.Printf("+%v", err)
 		}
 		users.session.Close()
 		return
@@ -129,9 +154,6 @@ func main() {
 	createCmdKeybaord()
 
 	fmt.Println("Telegram Bot is Started")
-
-	createSlideShow()
-
 	bot.Start()
 }
 

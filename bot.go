@@ -17,6 +17,15 @@ func setUpBot(botMode string) *tgAPI.Bot {
 		})
 		break
 	case "prod":
+		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
+			Token: config.Token,
+			Poller: &tgAPI.Webhook{
+				Listen: config.WebhookPort,
+				Endpoint: &tgAPI.WebhookEndpoint{
+					PublicURL: config.WebhookURL,
+				},
+			},
+		})
 		break
 	case "send":
 		tempBot, err = tgAPI.NewBot(tgAPI.Settings{

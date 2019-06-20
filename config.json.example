@@ -1,0 +1,33 @@
+{
+    "con":"Convention Name Here",
+    "dbName":"Database name for mongodb",
+    "token":"Telegram bot Token",
+    "date":"Date that the con starts, in this format 2019-06-20T00:00:00Z",
+    "DATADIR":"Full path to data directory",
+    "mainBot":{
+        "welcomeMsg": "Welcome Message for the bot",
+        "subMsg": "Message to send when someone subscribes",
+        "alreadySubMsg":"Message when someone is already subscribed",
+        "groupNotAdminMsg":"Message when someone tries to control the bot who is not a supergroup admin",
+        "groupAddMsg":"Welcome message when added to a group.",
+        "notSubMsg":"Message when someone is not subscried and tries to unsubscribe",
+        "unsubMsg":"Message when someone unsubscribes",
+        "cmdMsg": "Message at the top of the commands menu",
+        "infoMsg":"Info message text",
+        "owners":"Comma seperated telegram chat ids for the owner(s) of the bot."
+    },
+    "imgSend":{
+        "dayToStart":Number of days out that you want the bot to start sending pictures,
+        "fontSize":Font side for your chosen,
+        "font":"Font that you want to be on the picture.",
+        "animalEmoji":"Comma seperated list of emojis you want in the message",
+        "music":"Music for the last day when it plays a montage of images",
+        "videoCaption":"Caption for the video."
+    },
+    "twitter":{
+        "consumerKey":"",
+        "consumerSecret":"",
+        "accessToken":"",
+        "accessSecret":""
+    }
+}

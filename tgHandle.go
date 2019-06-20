@@ -110,7 +110,10 @@ func handleHomeBtn(c *tgAPI.Callback) {
 }
 
 func handleInfoBtn(c *tgAPI.Callback) {
-	handleBtnClick(config.MainBot.InfoMsg, keyboards["back"], c)
+	var totalUsers []user
+	users.findAll(bson.M{}, &totalUsers)
+	sendString := config.MainBot.InfoMsg + "\n\n Users Subscribed: " + strconv.Itoa(len(totalUsers))
+	handleBtnClick(sendString, keyboards["back"], c)
 }
 
 func handleDaysBtn(c *tgAPI.Callback) {
