@@ -17,14 +17,16 @@ import (
 )
 
 func sendTelegramPhoto(img finalImg) error {
+	photoCaption := intToEmoji(img.DaysLeft) + " Days Until " + config.Con + "!\n\n📸: [" + img.CreditName + "](" + img.CreditURL + ")"
 	sendPhoto := tgAPI.Photo{
 		File:    tgAPI.FromReader(img.ImgReader),
-		Caption: intToEmoji(img.DaysLeft) + " Days Until " + config.Con + "!\n\n📸: [" + img.CreditName + "](" + img.CreditURL + ")",
+		Caption: photoCaption,
 	}
 	var allUsers []user
 	users.findAll(bson.M{}, &allUsers)
 
 	for i := range allUsers {
+		sendPhoto.Caption = photoCaption
 		user := allUsers[i]
 		tgUser := tgAPI.User{
 			ID: user.ChatID,
@@ -33,7 +35,7 @@ func sendTelegramPhoto(img finalImg) error {
 			ParseMode: tgAPI.ModeMarkdown,
 		})
 		if err != nil {
-			if err.Error() == "api error: Forbidden: bot was blocked by the user" {
+			if err.Error() == "api error: Forbidden: bot was blocked by the user" || err.Error() == "api error: Forbidden: user is deactivated" || err.Error() == "api error: Bad Request: chat not found" || err.Error() == "api error: Bad Request: have no rights to send a message" {
 				users.removeOne(bson.M{"chatId": user.ChatID})
 			}
 		}
