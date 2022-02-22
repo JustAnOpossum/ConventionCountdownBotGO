@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	tgAPI "gopkg.in/tucnak/telebot.v2"
+	tgAPI "gopkg.in/telebot.v3"
 )
 
 func setUpBot(botMode string) *tgAPI.Bot {
@@ -15,7 +15,6 @@ func setUpBot(botMode string) *tgAPI.Bot {
 			Token:  config.Token,
 			Poller: &tgAPI.LongPoller{Timeout: 10 * time.Second},
 		})
-		break
 	case "prod":
 		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
 			Token: config.Token,
@@ -26,12 +25,10 @@ func setUpBot(botMode string) *tgAPI.Bot {
 				},
 			},
 		})
-		break
 	case "send":
 		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
 			Token: config.Token,
 		})
-		break
 	}
 	if err != nil {
 		panic(err)

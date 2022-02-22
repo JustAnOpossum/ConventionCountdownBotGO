@@ -1,3 +1,6 @@
+//tgHandle.go
+//Handles all callbacks for the bot. Including the slash command and inline keyboard buttons.
+
 package main
 
 import (
@@ -5,13 +8,13 @@ import (
 	"strings"
 
 	"github.com/globalsign/mgo/bson"
-	tgAPI "gopkg.in/tucnak/telebot.v2"
+	tgAPI "gopkg.in/telebot.v3"
 )
 
 //Handlers From Telegram
 func findSubOrUnsubKeyboard(chatID int64) [][]tgAPI.InlineButton {
 	var keyboardToSend [][]tgAPI.InlineButton
-	if users.itemExists(bson.M{"chatId": chatID}) == true {
+	if users.itemExists(bson.M{"chatId": chatID}) {
 		keyboardToSend = keyboards["mainUnsub"]
 	} else {
 		keyboardToSend = keyboards["mainSub"]
@@ -19,124 +22,150 @@ func findSubOrUnsubKeyboard(chatID int64) [][]tgAPI.InlineButton {
 	return keyboardToSend
 }
 
-func handleChatUser(c *tgAPI.Callback) bool {
-	chatMember, err := bot.ChatMemberOf(c.Message.Chat, c.Sender)
-	if err != nil {
-		handleBtnClick("An Error Occured", keyboards["back"], c)
-		handleErr(err)
-		return false
+//Handles the /start command and returns an inline keyboard to the user
+func handleStart(ctx tgAPI.Context) error {
+	if ctx.Message().Chat.Type == "channel" || ctx.Message().Chat.Type == "privatechannel" {
+		return nil
 	}
-	isAdmin := checkForAdmin(chatMember)
-	if isAdmin == false {
-		handleBtnClick(config.MainBot.GroupNotAdminMsg, keyboards["back"], c)
-		return false
-	}
-	return true
-}
-
-func checkForAdmin(chatMember *tgAPI.ChatMember) bool {
-	if chatMember.Role == "creator" || chatMember.Role == "administrator" {
-		return true
-	}
-	return false
-}
-
-func handleStart(msg *tgAPI.Message) {
-	if msg.Chat.Type == "channel" || msg.Chat.Type == "privatechannel" {
-		return
-	}
-	bot.Send(&tgAPI.User{
-		ID: int(msg.Chat.ID),
-	}, config.MainBot.WelcomeMsg, &tgAPI.ReplyMarkup{
-		InlineKeyboard: findSubOrUnsubKeyboard(msg.Chat.ID),
+	ctx.Send(config.MainBot.WelcomeMsg, &tgAPI.ReplyMarkup{
+		InlineKeyboard: findSubOrUnsubKeyboard(ctx.Message().Chat.ID),
 	})
+	return nil
 }
 
-func handleGroupAdd(msg *tgAPI.Message) {
-	bot.Send(msg.Chat, config.MainBot.GroupAddMsg, &tgAPI.ReplyMarkup{
-		InlineKeyboard: findSubOrUnsubKeyboard(msg.Chat.ID),
+//Handles when the bot is added to a group.
+//TODO: Unify above function into one.
+func handleGroupAdd(ctx tgAPI.Context) error {
+	ctx.Send(config.MainBot.GroupAddMsg, &tgAPI.ReplyMarkup{
+		InlineKeyboard: findSubOrUnsubKeyboard(ctx.Message().Chat.ID),
 	})
+	return nil
 }
 
-func handleMigration(from, to int64) {
-	if users.itemExists(bson.M{"chatId": from}) == false {
-		return
+//If a chat is migrated, handle migration by updating group ID in database
+func handleMigration(ctx tgAPI.Context) error {
+	to, from := ctx.Migration()
+	if !users.itemExists(bson.M{"chatId": from}) {
+		return nil
 	}
 	users.update(bson.M{"chatId": from}, bson.M{"$set": bson.M{"chatId": to}})
+	return nil
 }
 
-//Handalers For Keybaord
-func handleSubBtn(c *tgAPI.Callback) {
-	if c.Message.FromGroup() == true {
-		if shouldContinue := handleChatUser(c); shouldContinue == false {
-			return
+//Handles subscribe button event
+func handleSubBtn(ctx tgAPI.Context) error {
+	//Calls helper to make sure user has permissions to subscribe the group to the bot
+	if ctx.Chat().Type == tgAPI.ChatGroup {
+		if shouldContinue := handleChatUser(ctx); !shouldContinue {
+			return nil
 		}
 	}
-	status := handleSub(c.Message)
-	if status == true {
-		handleBtnClick(config.MainBot.SubMsg, keyboards["back"], c)
-		owners := strings.Split(config.MainBot.Owners, ",")
-		for i := range owners {
-			idToSend, _ := strconv.Atoi(owners[i])
-			bot.Send(&tgAPI.User{
-				ID: idToSend,
-			}, c.Message.Chat.Username+" Subscribed!")
+
+	status := handleSub(ctx.Chat().ID, ctx.Message().FromGroup())
+	if status {
+		handleBtnClick(config.MainBot.SubMsg, keyboards["back"], ctx)
+		//Messages the owners in the config when subscribe is successful
+		if config.MessageOnSub {
+			owners := strings.Split(config.MainBot.Owners, ",")
+			for i := range owners {
+				idToSend, _ := strconv.Atoi(owners[i])
+				bot.Send(&tgAPI.User{
+					ID: int64(idToSend),
+				}, ctx.Message().Chat.Username+" Subscribed!")
+			}
 		}
 	} else {
-		handleBtnClick(config.MainBot.AlreadySubMsg, keyboards["back"], c)
+		handleBtnClick(config.MainBot.AlreadySubMsg, keyboards["back"], ctx)
 	}
+	return nil
 }
 
-func handleUnsubBtn(c *tgAPI.Callback) {
-	if c.Message.FromGroup() == true {
-		if shouldContinue := handleChatUser(c); shouldContinue == false {
-			return
+//Handles an unsubscribe button click
+func handleUnsubBtn(ctx tgAPI.Context) error {
+	//Calls helper to make sure user has permissions to subscribe the group to the bot
+	if ctx.Message().FromGroup() {
+		if shouldContinue := handleChatUser(ctx); !shouldContinue {
+			return nil
 		}
 	}
-	status := handleUnsub(c.Message)
-	if status == true {
-		handleBtnClick(config.MainBot.UnsubMsg, keyboards["back"], c)
+	status := handleUnsub(ctx.Message().Chat.ID)
+	if status {
+		handleBtnClick(config.MainBot.UnsubMsg, keyboards["back"], ctx)
 	} else {
-		handleBtnClick(config.MainBot.NotSubMsg, keyboards["back"], c)
+		handleBtnClick(config.MainBot.NotSubMsg, keyboards["back"], ctx)
 	}
+	return nil
 }
 
-func handleCommandBtn(c *tgAPI.Callback) {
-	handleBtnClick(config.MainBot.CmdMsg, keyboards["cmd"], c)
+//Button handle for command
+func handleCommandBtn(ctx tgAPI.Context) error {
+	handleBtnClick(config.MainBot.CmdMsg, keyboards["cmd"], ctx)
+	return nil
 }
 
-func handleHomeBtn(c *tgAPI.Callback) {
-	handleBtnClick(config.MainBot.WelcomeMsg, findSubOrUnsubKeyboard(c.Message.Chat.ID), c)
+//Button handle for Home
+func handleHomeBtn(ctx tgAPI.Context) error {
+	handleBtnClick(config.MainBot.WelcomeMsg, findSubOrUnsubKeyboard(ctx.Message().Chat.ID), ctx)
+	return nil
 }
 
-func handleInfoBtn(c *tgAPI.Callback) {
+//Button handle for info
+func handleInfoBtn(ctx tgAPI.Context) error {
 	var totalUsers []user
 	users.findAll(bson.M{}, &totalUsers)
 	sendString := config.MainBot.InfoMsg + "\n\nUsers Subscribed: " + strconv.Itoa(len(totalUsers))
-	handleBtnClick(sendString, keyboards["back"], c)
+	handleBtnClick(sendString, keyboards["back"], ctx)
+	return nil
 }
 
-func handleDaysBtn(c *tgAPI.Callback) {
+//Button handle for days
+func handleDaysBtn(ctx tgAPI.Context) error {
 	dayStr := strconv.Itoa(getDays(config.Date)) + " Days Until " + config.Con + "!"
-	handleBtnClick(dayStr, keyboards["back"], c)
+	handleBtnClick(dayStr, keyboards["back"], ctx)
+	return nil
 }
 
-func handleSub(msg *tgAPI.Message) bool {
-	if users.itemExists(bson.M{"chatId": msg.Chat.ID}) == true {
+//Handles a user or group subscription to that database
+func handleSub(chatID int64, isGroup bool) bool {
+	if users.itemExists(bson.M{"chatId": chatID}) {
 		return false
 	}
 	itemToInsert := user{
-		ChatID: int(msg.Chat.ID),
-		Group:  msg.FromGroup(),
+		ChatID: chatID,
+		Group:  isGroup,
 	}
 	users.insert(itemToInsert)
 	return true
 }
 
-func handleUnsub(msg *tgAPI.Message) bool {
-	if users.itemExists(bson.M{"chatId": msg.Chat.ID}) == false {
+func handleUnsub(chatID int64) bool {
+	if users.itemExists(bson.M{"chatId": chatID}) {
 		return false
 	}
-	users.removeOne(bson.M{"chatId": msg.Chat.ID})
+	users.removeOne(bson.M{"chatId": chatID})
 	return true
+}
+
+//Helper function for subscibing a user of a group to the bot
+func handleChatUser(ctx tgAPI.Context) bool {
+	chatMember, err := bot.ChatMemberOf(ctx.Chat(), ctx.Sender())
+	if err != nil {
+		handleBtnClick("An Error Occured", keyboards["back"], ctx)
+		handleErr(err)
+		return false
+	}
+	isAdmin := checkForAdmin(chatMember)
+	if !isAdmin {
+		handleBtnClick(config.MainBot.GroupNotAdminMsg, keyboards["back"], ctx)
+		return false
+	}
+	return true
+}
+
+//Helper function to make sure the user trying to subscribe is an admin of the group.
+func checkForAdmin(chatMember *tgAPI.ChatMember) bool {
+	if chatMember.Role == "creator" || chatMember.Role == "administrator" {
+		return true
+	}
+	return false
 }

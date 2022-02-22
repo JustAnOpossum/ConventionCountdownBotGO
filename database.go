@@ -6,7 +6,6 @@ import (
 )
 
 type photo struct {
-	_id   bson.ObjectId
 	Photo string
 	Used  bool
 	Name  string
@@ -14,8 +13,7 @@ type photo struct {
 }
 
 type user struct {
-	_id    bson.ObjectId
-	ChatID int `bson:"chatId"`
+	ChatID int64 `bson:"chatId"`
 	Group  bool
 }
 
@@ -71,10 +69,7 @@ func (datastore *datastore) itemExists(query bson.M) bool {
 	defer data.Close()
 	var result []interface{}
 	data.DB("").C(datastore.collectioName).Find(query).All(&result)
-	if len(result) == 0 {
-		return false
-	}
-	return true
+	return len(result) != 0
 }
 
 func (datastore *datastore) distinct(query bson.M, distinctKey string) []string {

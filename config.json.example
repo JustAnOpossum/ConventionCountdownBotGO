@@ -3,7 +3,7 @@
     "dbName":"Database name for mongodb",
     "token":"Telegram bot Token",
     "date":"Date that the con starts, in this format 2019-06-20T00:00:00Z",
-    "DATADIR":"Full path to data directory",
+    "messageOnSub":"Send a message to the owner(s) on a successful subscribe"
     "mainBot":{
         "welcomeMsg": "Welcome Message for the bot",
         "subMsg": "Message to send when someone subscribes",
@@ -20,9 +20,7 @@
         "dayToStart":Number of days out that you want the bot to start sending pictures,
         "fontSize":Font side for your chosen,
         "font":"Font that you want to be on the picture.",
-        "animalEmoji":"Comma seperated list of emojis you want in the message",
-        "music":"Music for the last day when it plays a montage of images",
-        "videoCaption":"Caption for the video."
+        "animalEmoji":"Comma seperated list of emojis you want in the message"
     },
     "twitter":{
         "consumerKey":"",

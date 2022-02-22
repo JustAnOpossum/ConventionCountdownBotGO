@@ -9,19 +9,20 @@ import (
 	"path"
 	"time"
 
-	tgAPI "gopkg.in/tucnak/telebot.v2"
+	tgAPI "gopkg.in/telebot.v3"
 )
 
 type configStruct struct {
-	Con         string
-	Date        time.Time
-	DBName      string
-	Token       string
-	WebhookURL  string
-	WebhookPort string
-	MainBot     mainBotStruct
-	ImgSend     imgSendStruct
-	Twitter     twitterStruct
+	Con          string
+	Date         time.Time
+	DBName       string
+	Token        string
+	WebhookURL   string
+	WebhookPort  string
+	MessageOnSub bool
+	MainBot      mainBotStruct
+	ImgSend      imgSendStruct
+	Twitter      twitterStruct
 }
 
 type mainBotStruct struct {
@@ -38,11 +39,9 @@ type mainBotStruct struct {
 }
 
 type imgSendStruct struct {
-	DayToStart   int
-	FontSize     float64
-	Font         string
-	Music        string
-	VideoCaption string
+	DayToStart int
+	FontSize   float64
+	Font       string
 }
 
 type twitterStruct struct {
@@ -58,7 +57,6 @@ var users *datastore
 var photos *datastore
 var dataDir = os.Getenv("DATADIR")
 var imgDir = dataDir + "/img"
-var countdownDir = dataDir + "/countdown"
 var out = ioutil.Discard
 
 func logError(err error) {
@@ -94,54 +92,33 @@ func main() {
 	switch os.Getenv("MODE") {
 	case "test":
 		bot = setUpBot("test")
-		break
 	case "prod":
 		bot = setUpBot("prod")
-		break
-	case "main":
-		break
 	case "send":
 		bot = setUpBot("send")
 		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
 			return
 		}
 		checkForAPI()
-		if getDays(config.Date) == 0 {
-			slideshow, err := createSlideShow()
-			if err != nil {
-				logError(err)
-			}
-			err = sendTelegramVideo(slideshow)
+		returnedImg, err := createImg()
+		if err != nil {
 			logError(err)
-			if config.Twitter.ConsumerKey != "" {
-				mediaID, err := uploadTwitterMedia(slideshow, "video/mp4")
-				if err != nil {
-					logError(err)
-					return
-				}
-
-				sendMediaTweet(mediaID, config.ImgSend.VideoCaption)
-			}
-		} else {
-			returnedImg, err := createImg()
+			return
+		}
+		fmt.Fprintln(out, "Got Image")
+		err = sendTelegramPhoto(returnedImg)
+		logError(err)
+		if config.Twitter.ConsumerKey != "" {
+			mediaID, err := uploadTwitterMedia(returnedImg.FilePath, "image/jpeg")
 			if err != nil {
 				logError(err)
 				return
 			}
-			fmt.Fprintln(out, "Got Image")
-			err = sendTelegramPhoto(returnedImg)
-			logError(err)
-			if config.Twitter.ConsumerKey != "" {
-				mediaID, err := uploadTwitterMedia(returnedImg.FilePath, "image/jpeg")
-				if err != nil {
-					logError(err)
-					return
-				}
 
-				twitterCaption := intToEmoji(returnedImg.DaysLeft) + " Days Until " + config.Con + "!\n\n📸: " + returnedImg.CreditName + " " + returnedImg.CreditURL
-				sendMediaTweet(mediaID, twitterCaption)
-			}
+			twitterCaption := intToEmoji(returnedImg.DaysLeft) + " Days Until " + config.Con + "!\n\n📸: " + returnedImg.CreditName + " " + returnedImg.CreditURL
+			sendMediaTweet(mediaID, twitterCaption)
 		}
+
 		users.session.Close()
 		return
 	}
@@ -151,6 +128,7 @@ func main() {
 	bot.Handle(tgAPI.OnAddedToGroup, handleGroupAdd)
 	bot.Handle(tgAPI.OnMigration, handleMigration)
 
+	//Creates all available keyboards for later use
 	createMainMenu(true)
 	createMainMenu(false)
 	createBackKeyboard()
@@ -165,7 +143,7 @@ func handleErr(err error) {
 }
 
 func getDays(day time.Time) int {
-	timeUntil := day.Sub(time.Now())
+	timeUntil := time.Until(day)
 	daysUntil := timeUntil.Hours() / 24
 	daysRounded := math.Round(daysUntil)
 	return int(daysRounded)

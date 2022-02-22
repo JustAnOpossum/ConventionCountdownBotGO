@@ -1,7 +1,7 @@
 package main
 
 import (
-	tgAPI "gopkg.in/tucnak/telebot.v2"
+	tgAPI "gopkg.in/telebot.v3"
 )
 
 var keyboards = make(map[string][][]tgAPI.InlineButton)
@@ -9,7 +9,7 @@ var keyboards = make(map[string][][]tgAPI.InlineButton)
 func createMainMenu(isSubscribed bool) {
 	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
 	var nameToAppend string
-	if isSubscribed == true {
+	if isSubscribed {
 		finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("unsub", "Unsubscribe From Countdown", handleUnsubBtn)})
 		nameToAppend = "Unsub"
 	} else {
@@ -39,7 +39,8 @@ func createBackKeyboard() {
 	keyboards["back"] = finalKeyboard
 }
 
-func createBtn(uniqueName, text string, callback func(*tgAPI.Callback)) tgAPI.InlineButton {
+//Creates each button, registering the callback
+func createBtn(uniqueName, text string, callback func(tgAPI.Context) error) tgAPI.InlineButton {
 	btn := tgAPI.InlineButton{
 		Unique: uniqueName,
 		Text:   text,
@@ -48,9 +49,10 @@ func createBtn(uniqueName, text string, callback func(*tgAPI.Callback)) tgAPI.In
 	return btn
 }
 
-func handleBtnClick(msgTxt string, msgKeyboard [][]tgAPI.InlineButton, c *tgAPI.Callback) {
-	bot.Edit(c.Message, msgTxt, &tgAPI.ReplyMarkup{
+//Sends the final response when a button is clicked
+func handleBtnClick(msgTxt string, msgKeyboard [][]tgAPI.InlineButton, ctx tgAPI.Context) {
+	ctx.Edit(msgTxt, &tgAPI.ReplyMarkup{
 		InlineKeyboard: msgKeyboard,
 	})
-	bot.Respond(c, &tgAPI.CallbackResponse{})
+	ctx.Respond(&tgAPI.CallbackResponse{})
 }
