@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math"
 	"os"
 	"path"
@@ -63,7 +64,7 @@ var out = ioutil.Discard
 
 func logError(err error) {
 	if err != nil {
-		fmt.Printf("+%v", err)
+		log.Println("Error: " + err.Error())
 	}
 }
 
@@ -72,43 +73,23 @@ func main() {
 		out = os.Stdout
 	}
 
-	if os.Getenv("MODE") == "" {
-		askQuestions()
-		loadConfig(dataDir, &config)
-		fmt.Println("Please Wait... Connecting to Database")
-		users, photos = setUpDB(config.DBName, config.DBUrl)
-		fmt.Println("Connected to Database!")
-		err := uploadZip()
-		if err == nil {
-			fmt.Println("Added All Photos!")
-		} else {
-			fmt.Println(err)
-		}
-		users.client.Disconnect(context.Background())
-		return
-	}
-
 	loadConfig(dataDir, &config)
 	users, photos = setUpDB(config.DBName, config.DBUrl)
 
 	switch os.Getenv("MODE") {
-	case "test":
-		bot = setUpBot("test")
-	case "prod":
-		bot = setUpBot("prod")
+	case "longPoll":
+		bot = setUpBot("longPoll")
+	case "webhook":
+		bot = setUpBot("webhook")
 	case "send":
 		bot = setUpBot("send")
 		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
 			return
 		}
 		checkForAPI()
-		returnedImg, err := createImg()
-		if err != nil {
-			logError(err)
-			return
-		}
+		returnedImg := createImg()
 		fmt.Fprintln(out, "Got Image")
-		err = sendTelegramPhoto(returnedImg)
+		err := sendTelegramPhoto(returnedImg)
 		logError(err)
 		if config.Twitter.ConsumerKey != "" {
 			mediaID, err := uploadTwitterMedia(returnedImg.FilePath, "image/jpeg")
@@ -123,10 +104,28 @@ func main() {
 
 		users.client.Disconnect(context.Background())
 		return
+	case "upload":
+		askQuestions()
+		loadConfig(dataDir, &config)
+		fmt.Println("Please Wait... Connecting to Database")
+		users, photos = setUpDB(config.DBName, config.DBUrl)
+		fmt.Println("Connected to Database!")
+		err := uploadZip()
+		if err == nil {
+			fmt.Println("Added All Photos!")
+		} else {
+			fmt.Println(err)
+		}
+		users.client.Disconnect(context.Background())
+		return
+	default:
+		fmt.Println("Error: Please specify a mode though MODE=(longPoll, webhook, send)")
+		return
 	}
 
 	bot.Handle("/start", handleStart)
 	bot.Handle("/menu", handleStart)
+	bot.Handle("/test", handleTest)
 	bot.Handle(tgAPI.OnAddedToGroup, handleGroupAdd)
 	bot.Handle(tgAPI.OnMigration, handleMigration)
 

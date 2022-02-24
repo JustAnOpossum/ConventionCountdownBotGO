@@ -37,23 +37,18 @@ func (datastore *datastore) findOne(query bson.M, result interface{}) {
 	datastore.collection.FindOne(ctx, query).Decode(result)
 }
 
-func (datastore *datastore) findAll(query bson.M, results interface{}) {
+func (datastore *datastore) findAll(query bson.M) []bson.Raw {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	result := make([]bson.Raw, 0)
 
-	cursor, err := datastore.collection.Find(ctx, query)
-	if err != nil {
-		results = nil
-		cursor.Close(ctx)
-		return
-	}
+	cursor, _ := datastore.collection.Find(ctx, query)
 
 	for cursor.Next(ctx) {
 		result = append(result, cursor.Current)
 	}
 
-	results = result
+	return result
 }
 
 func (datastore *datastore) insert(itemToIntert interface{}) {

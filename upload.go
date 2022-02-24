@@ -22,6 +22,7 @@ import (
 var zipFilePath string
 var creditName string
 var creditURL string
+var clearOrNot string
 
 func askQuestions() {
 	scanner := bufio.NewScanner(os.Stdin)
@@ -41,9 +42,23 @@ func askQuestions() {
 	fmt.Print("URL for Credit: ")
 	scanner.Scan()
 	creditURL = scanner.Text()
+
+	fmt.Print("Clear database and folders (y/n): ")
+	scanner.Scan()
+	clearOrNot = scanner.Text()
 }
 
 func uploadZip() error {
+	//Clears database and folder if user wants to reset
+	if clearOrNot == "y" {
+		photos.removeAll()
+		os.RemoveAll(imgDir)
+	}
+	//If the folder does not exist, then create the image holding area
+	if _, err := os.Stat(imgDir); os.IsNotExist(err) {
+		os.Mkdir(imgDir, 0644)
+	}
+
 	zipFile, err := zip.OpenReader(zipFilePath)
 	if err != nil {
 		return errors.New("Cannot Open Zip file")

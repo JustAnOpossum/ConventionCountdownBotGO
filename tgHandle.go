@@ -52,6 +52,20 @@ func handleMigration(ctx tgAPI.Context) error {
 	return nil
 }
 
+//Checks if user using commmand is an owner. And sends a test image to check image genration, etc.
+func handleTest(ctx tgAPI.Context) error {
+	owners := strings.Split(config.MainBot.Owners, ",")
+	for i := range owners {
+		ownerID, _ := strconv.Atoi(owners[i])
+		if ownerID == int(ctx.Sender().ID) {
+			img := createImg()
+			photo := tgAPI.Photo{File: tgAPI.FromReader(img.ImgReader)}
+			ctx.Send(photo)
+		}
+	}
+	return nil
+}
+
 //Handles subscribe button event
 func handleSubBtn(ctx tgAPI.Context) error {
 	//Calls helper to make sure user has permissions to subscribe the group to the bot

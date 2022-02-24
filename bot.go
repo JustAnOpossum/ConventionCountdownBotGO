@@ -10,12 +10,12 @@ func setUpBot(botMode string) *tgAPI.Bot {
 	var tempBot *tgAPI.Bot
 	var err error
 	switch botMode {
-	case "test":
+	case "longPoll":
 		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
 			Token:  config.Token,
 			Poller: &tgAPI.LongPoller{Timeout: 10 * time.Second},
 		})
-	case "prod":
+	case "webhook":
 		tempBot, err = tgAPI.NewBot(tgAPI.Settings{
 			Token: config.Token,
 			Poller: &tgAPI.Webhook{
