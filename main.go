@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +17,7 @@ type configStruct struct {
 	Con          string
 	Date         time.Time
 	DBName       string
+	DBUrl        string
 	Token        string
 	WebhookURL   string
 	WebhookPort  string
@@ -74,7 +76,7 @@ func main() {
 		askQuestions()
 		loadConfig(dataDir, &config)
 		fmt.Println("Please Wait... Connecting to Database")
-		users, photos = setUpDB(config.DBName)
+		users, photos = setUpDB(config.DBName, config.DBUrl)
 		fmt.Println("Connected to Database!")
 		err := uploadZip()
 		if err == nil {
@@ -82,12 +84,12 @@ func main() {
 		} else {
 			fmt.Println(err)
 		}
-		users.session.Close()
+		users.client.Disconnect(context.Background())
 		return
 	}
 
 	loadConfig(dataDir, &config)
-	users, photos = setUpDB(config.DBName)
+	users, photos = setUpDB(config.DBName, config.DBUrl)
 
 	switch os.Getenv("MODE") {
 	case "test":
@@ -119,7 +121,7 @@ func main() {
 			sendMediaTweet(mediaID, twitterCaption)
 		}
 
-		users.session.Close()
+		users.client.Disconnect(context.Background())
 		return
 	}
 

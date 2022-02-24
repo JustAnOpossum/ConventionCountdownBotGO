@@ -1,8 +1,15 @@
+//database.go
+//Containts the driver code for the database. Wraps database functions inside a method so that underlying API can be changed easier.
+
 package main
 
 import (
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"context"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type photo struct {
@@ -17,92 +24,104 @@ type user struct {
 	Group  bool
 }
 
+//Data type for a collection
 type datastore struct {
-	session       *mgo.Session
-	collectioName string
+	client     *mongo.Client
+	collection *mongo.Collection
 }
 
 func (datastore *datastore) findOne(query bson.M, result interface{}) {
-	data := datastore.session.Copy()
-	defer data.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	data.DB("").C(datastore.collectioName).Find(query).One(result)
+	datastore.collection.FindOne(ctx, query).Decode(result)
 }
 
 func (datastore *datastore) findAll(query bson.M, results interface{}) {
-	data := datastore.session.Copy()
-	defer data.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	result := make([]bson.Raw, 0)
 
-	data.DB("").C(datastore.collectioName).Find(query).All(results)
+	cursor, err := datastore.collection.Find(ctx, query)
+	if err != nil {
+		results = nil
+		cursor.Close(ctx)
+		return
+	}
+
+	for cursor.Next(ctx) {
+		result = append(result, cursor.Current)
+	}
+
+	results = result
 }
 
 func (datastore *datastore) insert(itemToIntert interface{}) {
-	data := datastore.session.Copy()
-	defer data.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	data.DB("").C(datastore.collectioName).Insert(itemToIntert)
+	datastore.collection.InsertOne(ctx, itemToIntert)
 }
 
 func (datastore *datastore) update(query, itemToUpdate bson.M) {
-	data := datastore.session.Copy()
-	defer data.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	data.DB("").C(datastore.collectioName).Update(query, itemToUpdate)
+	datastore.collection.UpdateOne(ctx, query, itemToUpdate)
 }
 
 func (datastore *datastore) removeOne(query bson.M) {
-	data := datastore.session.Copy()
-	defer data.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	data.DB("").C(datastore.collectioName).Remove(query)
+	datastore.collection.DeleteOne(ctx, query)
 }
 
-func (datastore *datastore) removeAll(query bson.M) {
-	data := datastore.session.Copy()
-	defer data.Close()
+func (datastore *datastore) removeAll() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	data.DB("").C(datastore.collectioName).RemoveAll(query)
+	datastore.collection.DeleteMany(ctx, bson.D{})
 }
 
 func (datastore *datastore) itemExists(query bson.M) bool {
-	data := datastore.session.Copy()
-	defer data.Close()
-	var result []interface{}
-	data.DB("").C(datastore.collectioName).Find(query).All(&result)
-	return len(result) != 0
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var results []interface{}
+	err := datastore.collection.FindOne(ctx, query).Decode(results)
+	return err != mongo.ErrNoDocuments
 }
 
-func (datastore *datastore) distinct(query bson.M, distinctKey string) []string {
-	data := datastore.session.Copy()
-	defer data.Close()
-	var tempResult []string
-	data.DB("").C(datastore.collectioName).Find(query).Distinct(distinctKey, &tempResult)
+func (datastore *datastore) distinct(query bson.M, distinctKey string) []interface{} {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var tempResult []interface{}
+	distinct, _ := datastore.collection.Distinct(ctx, distinctKey, bson.M{})
+	tempResult = append(tempResult, distinct...)
 	return tempResult
 }
 
-func setUpDB(dbName string) (*datastore, *datastore) {
-	session, err := mgo.Dial("localhost/" + dbName)
+func setUpDB(dbName string, dbURL string) (*datastore, *datastore) {
+	//Connects to the database
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbURL))
+
 	if err != nil {
 		panic(err)
 	}
 
-	genIndex := func(keys []string) mgo.Index {
-		return mgo.Index{
-			Key:        keys,
-			Unique:     true,
-			Background: false,
-			Sparse:     true,
-		}
-	}
+	usersCollection := client.Database(dbName).Collection("users")
+	photosCollection := client.Database(dbName).Collection("photos")
 
-	statbotSession := session.Copy()
-	defer statbotSession.Close()
+	noRepeats := true
 
-	if err = statbotSession.DB("").C("photos").EnsureIndex(genIndex([]string{"photo", "name"})); err != nil {
-		panic(err)
-	}
-	if err = statbotSession.DB("").C("users").EnsureIndex(genIndex([]string{"chatId"})); err != nil {
-		panic(err)
-	}
-	return &datastore{session: session, collectioName: "users"}, &datastore{session: session, collectioName: "photos"}
+	//Creates indexes for the models so that everything will be unique
+	usersCollection.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.M{"chatId": 1}, Options: &options.IndexOptions{Unique: &noRepeats}})
+	photosCollection.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.M{"photo": 1, "name": 1}, Options: &options.IndexOptions{Unique: &noRepeats}})
+
+	//Wraps the collections inside a wrapper so that the underlying API can be changed
+	return &datastore{collection: usersCollection, client: client}, &datastore{collection: photosCollection, client: client}
 }

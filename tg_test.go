@@ -3,16 +3,16 @@ package main
 import (
 	"testing"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	tgAPI "gopkg.in/telebot.v3"
 )
 
 func TestSetUpDB(t *testing.T) {
 	if photos == nil || users == nil {
-		users, photos = setUpDB("testing")
+		users, photos = setUpDB("localhost", "test")
 	}
-	users.removeAll(bson.M{})
-	photos.removeAll(bson.M{})
+	users.removeAll()
+	photos.removeAll()
 }
 
 func TestCheckForAdmin(t *testing.T) {

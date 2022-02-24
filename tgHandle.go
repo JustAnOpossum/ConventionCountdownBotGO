@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	tgAPI "gopkg.in/telebot.v3"
 )
 
@@ -139,7 +139,7 @@ func handleSub(chatID int64, isGroup bool) bool {
 }
 
 func handleUnsub(chatID int64) bool {
-	if users.itemExists(bson.M{"chatId": chatID}) {
+	if !users.itemExists(bson.M{"chatId": chatID}) {
 		return false
 	}
 	users.removeOne(bson.M{"chatId": chatID})

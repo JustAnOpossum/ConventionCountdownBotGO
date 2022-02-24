@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/generaltso/vibrant"
-	"github.com/globalsign/mgo/bson"
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/gographics/imagick.v3/imagick"
 )
 
