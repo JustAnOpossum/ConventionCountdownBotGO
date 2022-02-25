@@ -1,31 +1,28 @@
 {
-    "con":"Convention Name Here",
-    "dbName":"Database name for mongodb",
-    "token":"Telegram bot Token",
-    "date":"Date that the con starts, in this format 2019-06-20T00:00:00Z",
-    "messageOnSub":"Send a message to the owner(s) on a successful subscribe"
-    "mainBot":{
+    "con": "Convention name for the bot",
+    "dbName": "Database name you want to use for the bot",
+    "dbURL": "Database connection string, ex. mongodb://localhost",
+    "token": "Token for the telegram bot you want this program to connect to.",
+    "date": "Date of the convention you are counting down too. Must be in the format YYYY-MM-DDT00:00:00Z",
+    "webhookURL": "URL of the webhook that telegram will send updates to.",
+    "webhookPort": "Port that this bot will listen to webhook updates on localhost",
+    "messageOnSub": boolean, if you want the bot to message any owner of the bot when a new user or group subscribes,
+    "mainBot": {
         "welcomeMsg": "Welcome Message for the bot",
         "subMsg": "Message to send when someone subscribes",
-        "alreadySubMsg":"Message when someone is already subscribed",
-        "groupNotAdminMsg":"Message when someone tries to control the bot who is not a supergroup admin",
-        "groupAddMsg":"Welcome message when added to a group.",
-        "notSubMsg":"Message when someone is not subscried and tries to unsubscribe",
-        "unsubMsg":"Message when someone unsubscribes",
-        "cmdMsg": "Message at the top of the commands menu",
-        "infoMsg":"Info message text",
-        "owners":"Comma seperated telegram chat ids for the owner(s) of the bot."
+        "groupAddMsg": "Welcome message when added to a group.",
+        "owners": "Comma seperated list of telegram user ID's who control the bot. This allows a 'owner' to subscribe a bot to a group chat even if that user isn't a owner or admin of that group"
     },
-    "imgSend":{
-        "dayToStart":Number of days out that you want the bot to start sending pictures,
-        "fontSize":Font side for your chosen,
-        "font":"Font that you want to be on the picture.",
-        "animalEmoji":"Comma seperated list of emojis you want in the message"
+    "imgSend": {
+        "dayToStart": integer, number of days before the convetion that the bot will start sending daily updates,
+        "fontSize": integer, font size of the day that will be drawn on the image,
+        "font": "font file that you want to use for the day that will be drawn on the image",
+        "animalEmoji": "Comma seperated list of emojis that you want in the image caption for the daily image"
     },
-    "twitter":{
-        "consumerKey":"",
-        "consumerSecret":"",
-        "accessToken":"",
-        "accessSecret":""
+    "twitter": {
+        "consumerKey": "",
+        "consumerSecret": "",
+        "accessToken": "",
+        "accessSecret": ""
     }
 }
