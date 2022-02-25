@@ -1,9 +1,10 @@
+//photo.go
+//Creates the actual countdown image. All image generation steps are acomplished here.
+
 package main
 
 import (
-	"bytes"
 	"image"
-	"image/color"
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
@@ -21,7 +22,6 @@ import (
 
 //Returned image to be parsed by twitter and the telegram upload functions
 type finalImg struct {
-	ImgReader  *bytes.Reader
 	FilePath   string
 	FileName   string
 	CreditName string
@@ -29,7 +29,7 @@ type finalImg struct {
 	DaysLeft   int
 }
 
-//Creates
+//Creates the image
 func createImg() finalImg {
 	//Sets the amount of days left for the final return image
 	imgToReturn := finalImg{
@@ -57,75 +57,29 @@ func createImg() finalImg {
 	imgCtx := gg.NewContextForImage(decodedImg)
 	fileName := (strconv.Itoa(getDays(config.Date))) + ".jpg"
 	filePath := path.Join(dataDir, "countdown/"+fileName)
+	//Set's the font color correctly
+	R, G, B := imgColors.Color.RGB()
+	imgCtx.SetRGB(float64(R), float64(G), float64(B))
+	//Loads the font face
 	err = imgCtx.LoadFontFace(path.Join(dataDir, config.ImgSend.Font), config.ImgSend.FontSize)
 	if err != nil {
 		log.Println("Setting font face in createImg() " + err.Error())
 		os.Exit(0)
 	}
-	//Converts the vibrant color to RGB and feeds that into gg
-	R, G, B := imgColors.Color.RGB()
-	newColor := color.RGBA{R: uint8(R), G: uint8(G), B: uint8(B)}
-	imgCtx.SetColor(newColor)
-	imgCtx.DrawStringAnchored(strconv.Itoa(getDays(config.Date)), float64(decodedImg.Bounds().Dx()/2), float64(decodedImg.Bounds().Dy()/2), 0.5, 0.5)
+	//Draws the text to the image
+	imgCtx.DrawStringAnchored(strconv.Itoa(getDays(config.Date)), float64(imgCtx.Image().Bounds().Dx()/2), float64(imgCtx.Image().Bounds().Dy()/2), 0.5, 0.5)
+	//Saves the image file
 	err = imgCtx.SavePNG(filePath)
 	if err != nil {
 		log.Println("Saving PNG in createImg() " + err.Error())
 		os.Exit(0)
 	}
-	imgBuffer := make([]byte, 0)
-	writer := bytes.NewBuffer(imgBuffer)
-	err = imgCtx.EncodePNG(writer)
-	if err != nil {
-		log.Println("Encoding PNG in createImg() " + err.Error())
-		os.Exit(0)
-	}
-	reader := bytes.NewReader(imgBuffer)
-	imgToReturn.ImgReader = reader
+	imgToReturn.FilePath = filePath
 
 	//Now that the photo is successfuly created set that photo to used
 	photos.update(bson.M{"photo": img.Photo}, bson.M{"$set": bson.M{"used": true}})
 	return imgToReturn
-
-	// imgWand := imagick.NewMagickWand()
-	// defer imgWand.Destroy()
-	// drawImgText(imgWand, img, imgColors)
-	// imgWand.SetImageFormat("JPEG")
-	// imgToReturn.ImgReader = bytes.NewReader(imgWand.GetImageBlob())
-	// imgWand.WriteImage(filePath)
-	// imgToReturn.FilePath = filePath
-
-	// txtToAppend := []byte("\nfile 'countdown/" + fileName + "'\nduration 0.5")
-	// slideshowFile, err := os.OpenFile(path.Join(dataDir, "slideshow.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	// if err != nil {
-	// 	return finalImg{}, errors.Wrap(err, "Slideshow File")
-	// }
-	// if _, err := slideshowFile.Write(txtToAppend); err != nil {
-	// 	return finalImg{}, errors.Wrap(err, "Writing to Sliideshow File")
-	// }
-	// if err := slideshowFile.Close(); err != nil {
-	// 	return finalImg{}, errors.Wrap(err, "Closing Slideshow File")
-	// }
 }
-
-// func drawImgText(imgWand *imagick.MagickWand, img photo, colors *vibrant.Swatch) {
-// 	loadedImg, _ := os.Open(path.Join(imgDir, img.Photo))
-// 	defer loadedImg.Close()
-
-// 	textWand := imagick.NewDrawingWand()
-// 	textColor := imagick.NewPixelWand()
-// 	defer textWand.Destroy()
-// 	defer textColor.Destroy()
-// 	imgWand.ReadImageFile(loadedImg)
-
-// 	textColor.SetColor(colors.Color.RGBHex())
-// 	textWand.SetFont(path.Join(dataDir, config.ImgSend.Font))
-// 	textWand.SetFontSize(config.ImgSend.FontSize)
-// 	textWand.SetFillColor(textColor)
-// 	textWand.SetGravity(imagick.GRAVITY_SOUTH_WEST)
-// 	textWand.Annotation(0, 0, strconv.Itoa(getDays(config.Date)))
-
-// 	imgWand.DrawImage(textWand)
-// }
 
 //Searches the database for a photo that has not been used yet
 func findImg() photo {
@@ -145,7 +99,7 @@ func findImg() photo {
 
 	var nameToFind []photo
 	nameToSearch := items[random.Intn(len(items))]
-	nameToFind = photos.findAll(bson.M{"name": nameToSearch})
+	photos.findAll(bson.M{"name": nameToSearch}, &nameToFind)
 
 	return nameToFind[random.Intn(len(nameToFind))]
 }

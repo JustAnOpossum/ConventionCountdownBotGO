@@ -1,3 +1,6 @@
+//main.go
+//Contains the entry for the program, and some helper functions to accomplish getting the bot up and running
+
 package main
 
 import (
@@ -9,6 +12,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"strconv"
 	"time"
 
 	tgAPI "gopkg.in/telebot.v3"
@@ -42,9 +46,10 @@ type mainBotStruct struct {
 }
 
 type imgSendStruct struct {
-	DayToStart int
-	FontSize   float64
-	Font       string
+	DayToStart  int
+	FontSize    float64
+	Font        string
+	AnimalEmoji string
 }
 
 type twitterStruct struct {
@@ -69,26 +74,40 @@ func logError(err error) {
 }
 
 func main() {
+	//Silent debug output for uploading a zip file and other methods that use fmt
 	if os.Getenv("DEBUG") == "true" {
 		out = os.Stdout
+	}
+
+	//Creates directories if they don't exist
+	if _, err := os.Stat(path.Join(dataDir, "countdown/")); os.IsNotExist(err) {
+		os.Mkdir(path.Join(dataDir, "countdown/"), 0644)
+	}
+	if _, err := os.Stat(imgDir); os.IsNotExist(err) {
+		os.Mkdir(imgDir, 0644)
 	}
 
 	loadConfig(dataDir, &config)
 	users, photos = setUpDB(config.DBName, config.DBUrl)
 
+	//Options for the bot to start
 	switch os.Getenv("MODE") {
+	//Starts the bot in long polling mode. Usefull if no webhooks
 	case "longPoll":
 		bot = setUpBot("longPoll")
+	//Starts the bot in webhook mode
 	case "webhook":
 		bot = setUpBot("webhook")
+	//Starts the bot in send image mode
 	case "send":
+		log.Println("Loading bot in send mode")
 		bot = setUpBot("send")
 		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
 			return
 		}
 		checkForAPI()
 		returnedImg := createImg()
-		fmt.Fprintln(out, "Got Image")
+		log.Println("Generated image for day " + strconv.Itoa(returnedImg.DaysLeft))
 		err := sendTelegramPhoto(returnedImg)
 		logError(err)
 		if config.Twitter.ConsumerKey != "" {
@@ -104,6 +123,7 @@ func main() {
 
 		users.client.Disconnect(context.Background())
 		return
+	//Starts the bot in upload mode
 	case "upload":
 		askQuestions()
 		loadConfig(dataDir, &config)
@@ -119,30 +139,33 @@ func main() {
 		users.client.Disconnect(context.Background())
 		return
 	default:
-		fmt.Println("Error: Please specify a mode though MODE=(longPoll, webhook, send)")
+		fmt.Println("Error: Please specify a mode though MODE=(longPoll, webhook, send, upload)")
 		return
 	}
 
+	//Sets up handleres for telegram
 	bot.Handle("/start", handleStart)
 	bot.Handle("/menu", handleStart)
-	bot.Handle("/test", handleTest)
+	// bot.Handle("/test", handleTest)
 	bot.Handle(tgAPI.OnAddedToGroup, handleGroupAdd)
 	bot.Handle(tgAPI.OnMigration, handleMigration)
 
-	//Creates all available keyboards for later use
+	//Creates inline keyboards
 	createMainMenu(true)
 	createMainMenu(false)
 	createBackKeyboard()
 	createCmdKeybaord()
 
-	fmt.Println("Telegram Bot is Started")
+	log.Println("Telegram Bot is Started")
 	bot.Start()
 }
 
+//Helper function to print errors
 func handleErr(err error) {
 	fmt.Printf("%+v", err)
 }
 
+//Gets how many days are left until the current con
 func getDays(day time.Time) int {
 	timeUntil := time.Until(day)
 	daysUntil := timeUntil.Hours() / 24
@@ -150,6 +173,7 @@ func getDays(day time.Time) int {
 	return int(daysRounded)
 }
 
+//Loads the config file
 func loadConfig(dataDir string, configVar *configStruct) {
 	configFile, err := ioutil.ReadFile(path.Join(dataDir, "config.json"))
 	if err != nil {

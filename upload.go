@@ -1,3 +1,6 @@
+//upload.go
+//Uploads a zip file to the database and stores the images in the correct location.
+
 package main
 
 import (
@@ -24,6 +27,7 @@ var creditName string
 var creditURL string
 var clearOrNot string
 
+//Gets the input to handle the rest of the upload process
 func askQuestions() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("Bot Data Directory: ")
@@ -48,15 +52,12 @@ func askQuestions() {
 	clearOrNot = scanner.Text()
 }
 
+//Uploads the zip file
 func uploadZip() error {
 	//Clears database and folder if user wants to reset
 	if clearOrNot == "y" {
 		photos.removeAll()
 		os.RemoveAll(imgDir)
-	}
-	//If the folder does not exist, then create the image holding area
-	if _, err := os.Stat(imgDir); os.IsNotExist(err) {
-		os.Mkdir(imgDir, 0644)
 	}
 
 	zipFile, err := zip.OpenReader(zipFilePath)
@@ -74,6 +75,7 @@ func uploadZip() error {
 	return nil
 }
 
+//Processes the images and uploads them to the database and stores them on disk
 func processZipFile(file *zip.File) error {
 	openFile, err := file.Open()
 	if err != nil {
@@ -87,6 +89,7 @@ func processZipFile(file *zip.File) error {
 	if fileType != "image/png" && fileType != "image/jpeg" {
 		return nil
 	}
+	//Makes sure that the file is not larger than the max file size for telegram/twitter
 	if file.UncompressedSize64 > 5000000 {
 		fmt.Fprintln(out, "Called Reszie Img")
 		err = resizeImg(&readFile, bytes.NewReader(readFile))
@@ -110,6 +113,7 @@ func processZipFile(file *zip.File) error {
 	return nil
 }
 
+//In case an image is too large this resizes the image so that it will fit within file size restrictions
 func resizeImg(outputImg *[]byte, inputReader *bytes.Reader) error {
 	tempImg, _, err := image.Decode(inputReader)
 	if err != nil {

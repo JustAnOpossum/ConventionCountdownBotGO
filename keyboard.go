@@ -1,11 +1,16 @@
+//keyboard.go
+//Deals with the inline keyboard functions. Including creating and managing button clicks.
+
 package main
 
 import (
 	tgAPI "gopkg.in/telebot.v3"
 )
 
+//Global to keep track of the created keyboards
 var keyboards = make(map[string][][]tgAPI.InlineButton)
 
+//Creates the main menu for the keyboard. This is the one referenced by /start and /menu
 func createMainMenu(isSubscribed bool) {
 	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
 	var nameToAppend string
@@ -20,6 +25,7 @@ func createMainMenu(isSubscribed bool) {
 	keyboards["main"+nameToAppend] = finalKeyboard
 }
 
+//Creates the command menu keyboard.
 func createCmdKeybaord() {
 	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
 
@@ -32,6 +38,7 @@ func createCmdKeybaord() {
 	keyboards["cmd"] = finalKeyboard
 }
 
+//Creates the keyboard used after you run a command
 func createBackKeyboard() {
 	var finalKeyboard = make([][]tgAPI.InlineButton, 0)
 	finalKeyboard = append(finalKeyboard, []tgAPI.InlineButton{createBtn("home", "Back To Main Menu", handleHomeBtn)})

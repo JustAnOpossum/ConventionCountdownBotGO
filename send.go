@@ -1,6 +1,11 @@
+//send.go
+//Sends both the telegram image and twitter image when the bot is running in send mode
+
 package main
 
 import (
+	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,9 +19,15 @@ import (
 )
 
 func sendTelegramPhoto(img finalImg) error {
-	photoCaption := intToEmoji(img.DaysLeft) + " Days Until " + config.Con + "!\n\n📸: [" + img.CreditName + "](" + img.CreditURL + ")"
+	log.Println("Sending telegram messages")
+	var photoCaption string
+	if img.DaysLeft == 0 {
+		photoCaption = "Tomorrow is " + config.Con + "!"
+	} else {
+		photoCaption = intToEmoji(img.DaysLeft) + " Days Until " + config.Con + "! " + findRandomAnimalEmoji() + "\n\n📸: [" + img.CreditName + "](" + img.CreditURL + ")"
+	}
 	sendPhoto := tgAPI.Photo{
-		File:    tgAPI.FromReader(img.ImgReader),
+		File:    tgAPI.FromDisk(img.FilePath),
 		Caption: photoCaption,
 	}
 	var allUsers []user
@@ -33,9 +44,10 @@ func sendTelegramPhoto(img finalImg) error {
 		})
 		if err != nil {
 			//List of common errors to prevent users from being accidentaly removed by the bot
-			if err.Error() == "api error: Forbidden: bot was blocked by the user" || err.Error() == "api error: Forbidden: user is deactivated" || err.Error() == "api error: Bad Request: chat not found" || err.Error() == "api error: Bad Request: have no rights to send a message" {
+			if strings.Contains(err.Error(), "bot was blocked by the user") || strings.Contains(err.Error(), "user is deactivated") || strings.Contains(err.Error(), "chat not found") || strings.Contains(err.Error(), "have no rights to send a message") {
 				users.removeOne(bson.M{"chatId": user.ChatID})
 			}
+			log.Println(err)
 		}
 	}
 
@@ -43,6 +55,7 @@ func sendTelegramPhoto(img finalImg) error {
 }
 
 func sendMediaTweet(mediaID int64, tweetText string) error {
+	log.Println("Sending twitter status update")
 	twitterConfig := oauth1.NewConfig(config.Twitter.ConsumerKey, config.Twitter.ConsumerSecret)
 	twitterToken := oauth1.NewToken(config.Twitter.AccessToken, config.Twitter.AccessSecret)
 	httpClient := twitterConfig.Client(oauth1.NoContext, twitterToken)
@@ -87,13 +100,13 @@ func intToEmoji(input int) string {
 	return finalString
 }
 
-//Gone, maybe used later
-// func findRandomAnimalEmoji() string {
-// 	animals := strings.Split(config.ImgSend.AnimalEmoji, ",")
-// 	randSrc := rand.NewSource(time.Now().Unix())
-// 	random := rand.New(randSrc)
-// 	return animals[random.Intn(len(animals))]
-// }
+//Finds a random animal emoji from the config file
+func findRandomAnimalEmoji() string {
+	animals := strings.Split(config.ImgSend.AnimalEmoji, ",")
+	randSrc := rand.NewSource(time.Now().Unix())
+	random := rand.New(randSrc)
+	return animals[random.Intn(len(animals))]
+}
 
 func checkForAPI() {
 	for {

@@ -1,3 +1,6 @@
+//mediaUpload.go
+//Handles uploading an image to twitter so that it can be attached to a tweet
+
 package main
 
 import (

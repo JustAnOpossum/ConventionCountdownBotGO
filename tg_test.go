@@ -1,3 +1,6 @@
+//tg_test.go
+//Makes sure some of the core functions for the bot work as intended. eg. checking to make sure that users are able to subscribe and unsubscribe.
+
 package main
 
 import (

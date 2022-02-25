@@ -52,19 +52,23 @@ func handleMigration(ctx tgAPI.Context) error {
 	return nil
 }
 
-//Checks if user using commmand is an owner. And sends a test image to check image genration, etc.
-func handleTest(ctx tgAPI.Context) error {
-	owners := strings.Split(config.MainBot.Owners, ",")
-	for i := range owners {
-		ownerID, _ := strconv.Atoi(owners[i])
-		if ownerID == int(ctx.Sender().ID) {
-			img := createImg()
-			photo := tgAPI.Photo{File: tgAPI.FromReader(img.ImgReader)}
-			ctx.Send(photo)
-		}
-	}
-	return nil
-}
+//May be used at a later time
+// //Checks if user using commmand is an owner. And sends a test image to check image genration, etc.
+// func handleTest(ctx tgAPI.Context) error {
+// 	owners := strings.Split(config.MainBot.Owners, ",")
+// 	for i := range owners {
+// 		ownerID, _ := strconv.Atoi(owners[i])
+// 		if ownerID == int(ctx.Sender().ID) {
+// 			img := createImg()
+// 			photo := tgAPI.Photo{File: tgAPI.FromReader(img.ImgReader)}
+// 			err := ctx.Send(photo)
+// 			if err != nil {
+// 				log.Println(err)
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
 //Handles subscribe button event
 func handleSubBtn(ctx tgAPI.Context) error {
@@ -89,7 +93,7 @@ func handleSubBtn(ctx tgAPI.Context) error {
 			}
 		}
 	} else {
-		handleBtnClick(config.MainBot.AlreadySubMsg, keyboards["back"], ctx)
+		handleBtnClick("I'm sorry, you are already subscribed.", keyboards["back"], ctx)
 	}
 	return nil
 }
@@ -104,16 +108,16 @@ func handleUnsubBtn(ctx tgAPI.Context) error {
 	}
 	status := handleUnsub(ctx.Message().Chat.ID)
 	if status {
-		handleBtnClick(config.MainBot.UnsubMsg, keyboards["back"], ctx)
+		handleBtnClick("Unsubscribed", keyboards["back"], ctx)
 	} else {
-		handleBtnClick(config.MainBot.NotSubMsg, keyboards["back"], ctx)
+		handleBtnClick("I'm sorry you are not unsubscribed", keyboards["back"], ctx)
 	}
 	return nil
 }
 
 //Button handle for command
 func handleCommandBtn(ctx tgAPI.Context) error {
-	handleBtnClick(config.MainBot.CmdMsg, keyboards["cmd"], ctx)
+	handleBtnClick("Commands:", keyboards["cmd"], ctx)
 	return nil
 }
 
@@ -127,7 +131,7 @@ func handleHomeBtn(ctx tgAPI.Context) error {
 func handleInfoBtn(ctx tgAPI.Context) error {
 	var totalUsers []user
 	users.findAll(bson.M{}, &totalUsers)
-	sendString := config.MainBot.InfoMsg + "\n\nUsers Subscribed: " + strconv.Itoa(len(totalUsers))
+	sendString := "Bot created by @NerdyRedPanda" + "\n\nUsers Subscribed: " + strconv.Itoa(len(totalUsers))
 	handleBtnClick(sendString, keyboards["back"], ctx)
 	return nil
 }
@@ -170,7 +174,7 @@ func handleChatUser(ctx tgAPI.Context) bool {
 	}
 	isAdmin := checkForAdmin(chatMember)
 	if !isAdmin {
-		handleBtnClick(config.MainBot.GroupNotAdminMsg, keyboards["back"], ctx)
+		handleBtnClick("You don't have permissoins to subscribe this group. Please ask a group admin or owner to subscribe the bot.", keyboards["back"], ctx)
 		return false
 	}
 	return true
