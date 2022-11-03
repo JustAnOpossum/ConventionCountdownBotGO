@@ -12,7 +12,7 @@ import (
 
 func TestSetUpDB(t *testing.T) {
 	if photos == nil || users == nil {
-		users, photos = setUpDB("localhost", "test")
+		users, photos = setUpDB("test", "DBSTRING")
 	}
 	users.removeAll()
 	photos.removeAll()

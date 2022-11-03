@@ -9,8 +9,8 @@ https://telegram.me/FurFestBot
 # How to run the bot?
 
 ## Requirements
-* GO >= 1.11
-* MongoDB > 4
+* GO >= 1.17
+* MongoDB
 
 
 ```shell
@@ -46,7 +46,15 @@ This puts the bot in image sending mode. This mode looks at what users are subsc
 This mode puts the bot into upload mode. This mode guides you through the process of uploading images to the bot. If you want to upload images first zip them and run the bot in upload mode. This mode will ask for the path to the zip file among other options to get your photos uploaded to the bot.
 
 # Twitter Setup
-Twitter setup is not currently supported with v2 of the Twitter API still being so new and not allowing twitter updates. If you have a V1.1 key then you can fill in the Twitter options in config.json to send a daily Twitter image.
+To set up twitter create an app at https://developer.twitter.com/en
+
+Once you have your app make sure you have elevated access. This is need because the image upload endpoint is not yet on v2. 
+
+Then fill in the config file with consumer API key and secret.
+
+To authenticate with a twitter account use  https://github.com/smaeda-ks/tw-oob-oauth-cli to get a access key and secret.
+
+Once you have the access key and secret then fill those into the config file and the bot will post the picture to twitter as well as telegram.
 
 # Example Picture
 

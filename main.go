@@ -20,7 +20,7 @@ import (
 
 type configStruct struct {
 	Con          string
-	Date         time.Time
+	Date         string
 	DBName       string
 	DBUrl        string
 	Token        string
@@ -111,7 +111,7 @@ func main() {
 		err := sendTelegramPhoto(returnedImg)
 		logError(err)
 		if config.Twitter.ConsumerKey != "" {
-			mediaID, err := uploadTwitterMedia(returnedImg.FilePath, "image/jpeg")
+			mediaID, err := uploadTwitterImg(returnedImg.FilePath)
 			if err != nil {
 				logError(err)
 				return
@@ -167,10 +167,16 @@ func handleErr(err error) {
 }
 
 // Gets how many days are left until the current con
-func getDays(day time.Time) int {
-	timeUntil := time.Until(day)
+// Counts number of full days before con. Set con date at midnight for best results
+func getDays(day string) int {
+	//Timezone aware parsed string
+	parsedTime, err := time.Parse("Jan 2, 2006 at 3:04pm (MST)", day)
+	if err != nil {
+		panic(err)
+	}
+	timeUntil := time.Until(parsedTime)
 	daysUntil := timeUntil.Hours() / 24
-	daysRounded := math.Round(daysUntil)
+	daysRounded := math.Ceil(daysUntil)
 	return int(daysRounded)
 }
 

@@ -4,15 +4,18 @@
 package main
 
 import (
+	"context"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/dghubble/go-twitter/twitter"
-	"github.com/dghubble/oauth1"
+	"github.com/michimani/gotwi"
+	"github.com/michimani/gotwi/tweet/managetweet"
+	"github.com/michimani/gotwi/tweet/managetweet/types"
 	"go.mongodb.org/mongo-driver/bson"
 
 	tgAPI "gopkg.in/telebot.v3"
@@ -21,7 +24,7 @@ import (
 func sendTelegramPhoto(img finalImg) error {
 	log.Println("Sending telegram messages")
 	var photoCaption string
-	if img.DaysLeft == 0 {
+	if img.DaysLeft == 1 {
 		photoCaption = "Tomorrow is " + config.Con + "!"
 	} else {
 		photoCaption = intToEmoji(img.DaysLeft) + " Days Until " + config.Con + "! " + findRandomAnimalEmoji() + "\n\n📸: [" + img.CreditName + "](" + img.CreditURL + ")"
@@ -55,16 +58,34 @@ func sendTelegramPhoto(img finalImg) error {
 }
 
 func sendMediaTweet(mediaID int64, tweetText string) error {
-	log.Println("Sending twitter status update")
-	twitterConfig := oauth1.NewConfig(config.Twitter.ConsumerKey, config.Twitter.ConsumerSecret)
-	twitterToken := oauth1.NewToken(config.Twitter.AccessToken, config.Twitter.AccessSecret)
-	httpClient := twitterConfig.Client(oauth1.NoContext, twitterToken)
-	twitterClient := twitter.NewClient(httpClient)
+	log.Println("Sending twitter image")
+	os.Setenv("GOTWI_API_KEY", config.Twitter.ConsumerKey)
+	os.Setenv("GOTWI_API_KEY_SECRET", config.Twitter.ConsumerSecret)
+	token := gotwi.NewClientInput{
+		AuthenticationMethod: gotwi.AuthenMethodOAuth1UserContext,
+		OAuthToken:           config.Twitter.AccessToken,
+		OAuthTokenSecret:     config.Twitter.AccessSecret,
+	}
+	client, err := gotwi.NewClient(&token)
+	if err != nil {
+		return err
+	}
 
-	myMediaIds := []int64{mediaID}
-	twitterClient.Statuses.Update(tweetText, &twitter.StatusUpdateParams{
-		MediaIds: myMediaIds,
-	})
+	req := &types.CreateInput{
+		Text: gotwi.String(tweetText),
+		Media: &types.CreateInputMedia{
+			MediaIDs: []string{strconv.Itoa(int(mediaID))},
+		},
+	}
+	_, err = managetweet.Create(context.Background(), client, req)
+	if err != nil {
+		return err
+	}
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -100,7 +121,7 @@ func intToEmoji(input int) string {
 	return finalString
 }
 
-//Finds a random animal emoji from the config file
+// Finds a random animal emoji from the config file
 func findRandomAnimalEmoji() string {
 	animals := strings.Split(config.ImgSend.AnimalEmoji, ",")
 	randSrc := rand.NewSource(time.Now().Unix())

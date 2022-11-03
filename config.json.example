@@ -3,7 +3,7 @@
     "dbName": "Database name you want to use for the bot",
     "dbURL": "Database connection string, ex. mongodb://localhost",
     "token": "Token for the telegram bot you want this program to connect to.",
-    "date": "Date of the convention you are counting down too. Must be in the format YYYY-MM-DDT00:00:00Z",
+    "date": "Date of the convention you are counting down too. Must be in the format Nov 4, 2022 at 12:00am (MDT). Bot calculated how many days so for best performance set the date to midnight of the con day",
     "webhookURL": "URL of the webhook that telegram will send updates to.",
     "webhookPort": "Port that this bot will listen to webhook updates on localhost",
     "messageOnSub": boolean, if you want the bot to message any owner of the bot when a new user or group subscribes,
