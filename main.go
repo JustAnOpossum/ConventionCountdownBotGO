@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math"
 	"os"
@@ -65,7 +65,7 @@ var users *datastore
 var photos *datastore
 var dataDir = os.Getenv("DATADIR")
 var imgDir = dataDir + "/img"
-var out = ioutil.Discard
+var out = io.Discard
 
 func logError(err error) {
 	if err != nil {
@@ -125,6 +125,7 @@ func main() {
 		return
 	//Starts the bot in upload mode
 	case "upload":
+		imgDir = dataDir + "/img"
 		askQuestions()
 		loadConfig(dataDir, &config)
 		fmt.Println("Please Wait... Connecting to Database")
@@ -160,12 +161,12 @@ func main() {
 	bot.Start()
 }
 
-//Helper function to print errors
+// Helper function to print errors
 func handleErr(err error) {
 	fmt.Printf("%+v", err)
 }
 
-//Gets how many days are left until the current con
+// Gets how many days are left until the current con
 func getDays(day time.Time) int {
 	timeUntil := time.Until(day)
 	daysUntil := timeUntil.Hours() / 24
@@ -173,9 +174,9 @@ func getDays(day time.Time) int {
 	return int(daysRounded)
 }
 
-//Loads the config file
+// Loads the config file
 func loadConfig(dataDir string, configVar *configStruct) {
-	configFile, err := ioutil.ReadFile(path.Join(dataDir, "config.json"))
+	configFile, err := os.ReadFile(path.Join(dataDir, "config.json"))
 	if err != nil {
 		panic(err)
 	}

@@ -7,10 +7,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -64,7 +65,7 @@ func uploadTwitterMedia(path string, mediaType string) (int64, error) {
 	twitterToken := oauth1.NewToken(config.Twitter.AccessToken, config.Twitter.AccessSecret)
 	httpClient := twitterConfig.Client(oauth1.NoContext, twitterToken)
 
-	mediaFile, err := ioutil.ReadFile(path)
+	mediaFile, err := os.ReadFile(path)
 	if err != nil {
 		return 0, errors.Wrap(err, "Loading Media File")
 	}
@@ -107,7 +108,7 @@ func initMediaUpload(mediaSize string, mediaType string, client *http.Client) (i
 		return 0, errors.New("Got Wrong HTTP Code in init " + strconv.Itoa(res.StatusCode))
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return 0, errors.Wrap(err, "Reading Body")
 	}
@@ -176,7 +177,7 @@ func finalMediaUpload(mediaID int64, client *http.Client) error {
 	defer res.Body.Close()
 
 	if res.StatusCode >= 400 {
-		body, _ := ioutil.ReadAll(res.Body)
+		body, _ := io.ReadAll(res.Body)
 		return errors.New("Got Wrong HTTP Code in Final " + strconv.Itoa(res.StatusCode) + " " + string(body))
 	}
 	return nil

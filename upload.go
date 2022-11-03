@@ -11,7 +11,7 @@ import (
 	"image"
 	"image/jpeg"
 	_ "image/png"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -27,13 +27,9 @@ var creditName string
 var creditURL string
 var clearOrNot string
 
-//Gets the input to handle the rest of the upload process
+// Gets the input to handle the rest of the upload process
 func askQuestions() {
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("Bot Data Directory: ")
-	scanner.Scan()
-	dataDir = scanner.Text()
-	imgDir = dataDir + "/img"
 
 	fmt.Print("Path to ZIP File: ")
 	scanner.Scan()
@@ -52,12 +48,16 @@ func askQuestions() {
 	clearOrNot = scanner.Text()
 }
 
-//Uploads the zip file
+// Uploads the zip file
 func uploadZip() error {
 	//Clears database and folder if user wants to reset
 	if clearOrNot == "y" {
 		photos.removeAll()
 		os.RemoveAll(imgDir)
+	}
+	//Makes sure the image dir exists before writing any images to it
+	if _, err := os.Stat(imgDir); os.IsNotExist(err) {
+		os.Mkdir(imgDir, 0644)
 	}
 
 	zipFile, err := zip.OpenReader(zipFilePath)
@@ -75,19 +75,19 @@ func uploadZip() error {
 	return nil
 }
 
-//Processes the images and uploads them to the database and stores them on disk
+// Processes the images and uploads them to the database and stores them on disk
 func processZipFile(file *zip.File) error {
 	openFile, err := file.Open()
 	if err != nil {
 		return errors.Wrap(err, "Open Photo From Zip")
 	}
-	readFile, err := ioutil.ReadAll(openFile)
+	readFile, err := io.ReadAll(openFile)
 	if err != nil {
 		return errors.Wrap(err, "Reading Zip File")
 	}
 	fileType := http.DetectContentType(readFile)
 	if fileType != "image/png" && fileType != "image/jpeg" {
-		return nil
+		return errors.Wrap(err, "Image is not png or jpg")
 	}
 	//Makes sure that the file is not larger than the max file size for telegram/twitter
 	if file.UncompressedSize64 > 5000000 {
@@ -97,7 +97,7 @@ func processZipFile(file *zip.File) error {
 			return errors.Wrap(err, "Resizing Img")
 		}
 	}
-	err = ioutil.WriteFile(path.Join(imgDir, file.Name), readFile, 0664)
+	err = os.WriteFile(path.Join(imgDir, file.Name), readFile, 0664)
 	if err != nil {
 		return errors.Wrap(err, "Writing File")
 	}
@@ -113,7 +113,7 @@ func processZipFile(file *zip.File) error {
 	return nil
 }
 
-//In case an image is too large this resizes the image so that it will fit within file size restrictions
+// In case an image is too large this resizes the image so that it will fit within file size restrictions
 func resizeImg(outputImg *[]byte, inputReader *bytes.Reader) error {
 	tempImg, _, err := image.Decode(inputReader)
 	if err != nil {
