@@ -102,7 +102,7 @@ func main() {
 	case "send":
 		log.Println("Loading bot in send mode")
 		bot = setUpBot("send")
-		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 0 {
+		if getDays(config.Date) > config.ImgSend.DayToStart || getDays(config.Date) < 1 {
 			return
 		}
 		checkForAPI()

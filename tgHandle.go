@@ -139,6 +139,12 @@ func handleInfoBtn(ctx tgAPI.Context) error {
 // Button handle for days
 func handleDaysBtn(ctx tgAPI.Context) error {
 	dayStr := strconv.Itoa(getDays(config.Date)) + " Days Until " + config.Con + "!"
+	if getDays(config.Date) == 1 {
+		dayStr = strconv.Itoa(getDays(config.Date)) + " Day Until " + config.Con + "!"
+	}
+	if getDays(config.Date) < 1 {
+		dayStr = "Have fun at " + config.Con + "!"
+	}
 	handleBtnClick(dayStr, keyboards["back"], ctx)
 	return nil
 }
