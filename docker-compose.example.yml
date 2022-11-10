@@ -1,0 +1,21 @@
+version: '3.3'
+services:
+  mongo:
+    image: mongo
+    restart: always
+  Con1:
+    volumes:
+      - '/path/to/dataDir:/con:rw'
+    restart: always
+    environment:
+      - MODE=longPoll
+      - CRON="* * * * *"
+    image: ConBot
+  Con2:
+    volumes:
+      - '/path/to/dataDir:/con:rw'
+    restart: always
+    environment:
+      - MODE=longPoll
+      - CRON="* * * * *"
+    image: ConBot

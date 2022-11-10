@@ -6,7 +6,40 @@ The bots that I am currently running with the codebase are below
 
 https://telegram.me/FurFestBot
 
-# How to run the bot?
+# How to run the bot? (Docker)
+
+Build image:
+
+```shell
+docker build --tag ConBot .
+```
+
+Run with docker-compose:
+
+```shell
+cp docker-compose.example.yml docker-compose.yml
+docker-compose up -d
+```
+
+## Uploading images:
+Run this command while the container is running for your specific con.
+```shell
+docker exec --env MODE=upload -it ContainerName /bot
+```
+
+## Multiple cons:
+To run multiple cons run the ConBot image multiple times inside docker-compose. An exmaple is provided in the sample docker-compose
+
+
+## Configuring docker-compose:
+### Volumes:
+* /con - Mount your data directory to this point in the container
+
+### Environment Variable:
+* MODE - longPoll or webhook
+* CRON - Cron string of when you want to send the picture
+
+# How to run the bot? (Non Docker)
 
 ## Requirements
 * GO >= 1.17

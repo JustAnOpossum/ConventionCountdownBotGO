@@ -90,3 +90,4 @@ MFF
 
 test/
 conCountdownBot
+docker-compose.yml
